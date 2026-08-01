@@ -1,0 +1,126 @@
+@if (loading()) {
+  <div class="shell">
+    <div class="reader-skeleton"></div>
+  </div>
+} @else if (notFound()) {
+  <div class="shell empty">
+    <h1>Not found</h1>
+    <p>There is nothing at this address.</p>
+    <a class="btn btn--ghost" routerLink="/">Back to the beginning</a>
+  </div>
+} @else if (work(); as work) {
+  <div class="reader">
+    <header class="reader__bar shell">
+      <a class="reader__back" [routerLink]="backLink()" aria-label="Back to the shelf">←</a>
+
+      <div class="reader__identity">
+        <h1 class="reader__title">{{ work.title }}</h1>
+        @if (work.subtitle) {
+          <p class="reader__subtitle">{{ work.subtitle }}</p>
+        }
+      </div>
+
+      @if (src()) {
+        <div class="reader__controls">
+          <button class="btn btn--quiet" type="button" (click)="cycleZoom()">
+            {{ zoomLabel() }}
+          </button>
+          <button class="btn btn--quiet" type="button" (click)="toggleSpread()">
+            {{ spread() === 'double' ? 'Two pages' : 'One page' }}
+          </button>
+        </div>
+      }
+    </header>
+
+    @if (src(); as source) {
+      <div class="reader__stage">
+        <button
+          class="page-turn page-turn--prev"
+          type="button"
+          aria-label="Previous page"
+          [disabled]="page() <= 1"
+          (click)="turn(-1)"
+        >
+          ‹
+        </button>
+
+        <div class="reader__paper">
+          <ngx-extended-pdf-viewer
+            [src]="source"
+            [page]="page()"
+            [zoom]="zoom()"
+            [pageViewMode]="pageViewMode()"
+            [showToolbar]="false"
+            [showBorders]="false"
+            [textLayer]="true"
+            [height]="'100%'"
+            (pagesLoaded)="onPagesLoaded($event.pagesCount)"
+            (pageChange)="onPageChange($event)"
+          />
+        </div>
+
+        <button
+          class="page-turn page-turn--next"
+          type="button"
+          aria-label="Next page"
+          [disabled]="totalPages() > 0 && page() >= totalPages()"
+          (click)="turn(1)"
+        >
+          ›
+        </button>
+      </div>
+
+      <footer class="reader__foot">
+        <div class="reader__progress" role="progressbar" [attr.aria-valuenow]="progress()">
+          <span class="reader__progress-fill" [style.inline-size.%]="progress()"></span>
+        </div>
+        <p class="reader__count">
+          @if (totalPages() > 0) {
+            Page {{ page() }} of {{ totalPages() }} · {{ progress() }}%
+          } @else {
+            Loading pages…
+          }
+        </p>
+        <p class="reader__hint">Use ← and → to turn pages</p>
+      </footer>
+    } @else {
+      <!-- No file yet. Readers see intent; the author sees an upload control. -->
+      <div class="shell awaiting">
+        <p class="eyebrow">Not yet uploaded</p>
+        <h2 class="awaiting__title">This one is still being written.</h2>
+        <p class="awaiting__note">
+          {{ work.summary || 'It will appear here the moment it is ready to be read.' }}
+        </p>
+        <a class="btn btn--ghost" [routerLink]="backLink()">Back to the shelf</a>
+      </div>
+    }
+
+    @if (auth.isAdmin() && auth.editMode()) {
+      <div class="admin-strip shell">
+        <label class="admin-strip__upload">
+          <input type="file" accept="application/pdf" (change)="onFileSelected($event)" hidden />
+          <span class="btn btn--ghost">
+            {{ uploading() ? 'Uploading…' : work.pdf.hasFile ? 'Replace PDF' : 'Upload PDF' }}
+          </span>
+        </label>
+
+        <button class="btn btn--quiet" type="button" (click)="togglePublished()">
+          {{ work.published ? 'Published — unpublish' : 'Draft — publish' }}
+        </button>
+
+        @if (work.pdf.hasFile) {
+          <span class="admin-strip__meta">
+            {{ (work.pdf.byteSize / 1024 / 1024).toFixed(1) }} MB
+            @if (work.pdf.originalName) {
+              · {{ work.pdf.originalName }}
+            }
+          </span>
+        }
+
+        @if (uploadError()) {
+          <span class="admin-strip__error">{{ uploadError() }}</span>
+        }
+      </div>
+    }
+  </div>
+}

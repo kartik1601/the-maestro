@@ -1,0 +1,233 @@
+<app-refresh-pill [visible]="sync.stale()" [busy]="refreshing()" (refresh)="refresh()" />
+
+<div class="shell">
+  @if (editing()) {
+    <!-- All of this page's copy lives in MongoDB and is edited here. -->
+    <div class="page-edit">
+      <div class="field">
+        <label class="field__label" for="pageTitle">Page heading</label>
+        <input
+          class="input"
+          id="pageTitle"
+          type="text"
+          [ngModel]="draftTitle()"
+          (ngModelChange)="draftTitle.set($event)"
+        />
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="pageSubtitle">Sub-heading</label>
+        <input
+          class="input"
+          id="pageSubtitle"
+          type="text"
+          [ngModel]="draftSubtitle()"
+          (ngModelChange)="draftSubtitle.set($event)"
+        />
+      </div>
+
+      <div class="field">
+        <span class="field__label">Dialogue</span>
+        @for (entry of draftDialogue(); track $index) {
+          <div class="dialogue-edit">
+            <input
+              class="input dialogue-edit__speaker"
+              type="text"
+              placeholder="Speaker"
+              [ngModel]="entry.speaker"
+              (ngModelChange)="updateDialogue($index, 'speaker', $event)"
+            />
+            <textarea
+              class="input dialogue-edit__line"
+              rows="2"
+              placeholder="Line"
+              [ngModel]="entry.line"
+              (ngModelChange)="updateDialogue($index, 'line', $event)"
+            ></textarea>
+            <button
+              class="btn btn--quiet"
+              type="button"
+              aria-label="Remove line"
+              (click)="removeDialogueLine($index)"
+            >
+              ✕
+            </button>
+          </div>
+        }
+        <button class="btn btn--ghost dialogue-edit__add" type="button" (click)="addDialogueLine()">
+          Add a line
+        </button>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="dialogueSource">Dialogue source</label>
+        <input
+          class="input"
+          id="dialogueSource"
+          type="text"
+          [ngModel]="draftDialogueSource()"
+          (ngModelChange)="draftDialogueSource.set($event)"
+        />
+      </div>
+
+      <div class="page-edit__actions">
+        <button
+          class="btn btn--primary"
+          type="button"
+          [disabled]="!pageDirty() || savingPage()"
+          (click)="savePage()"
+        >
+          {{ savingPage() ? 'Saving…' : 'Save' }}
+        </button>
+        <button
+          class="btn btn--ghost"
+          type="button"
+          [disabled]="!pageDirty()"
+          (click)="discardPage()"
+        >
+          Discard
+        </button>
+      </div>
+    </div>
+  } @else {
+    <header class="shelf-head">
+      <h1 class="rise">{{ page()?.title }}</h1>
+      @if (page()?.subtitle) {
+        <p class="shelf-head__lede rise">{{ page()?.subtitle }}</p>
+      }
+
+      @if ((page()?.dialogue ?? []).length > 0) {
+        <blockquote class="dialogue rise">
+          @for (exchange of page()?.dialogue ?? []; track $index) {
+            <p class="dialogue__line">
+              @if (exchange.speaker) {
+                <span class="dialogue__speaker">{{ exchange.speaker }}:</span>
+              }
+              <!-- Kept on one line: a newline between the pieces would render as a
+                   space and split "five?" into "five ?". -->
+              @for (part of lineParts(exchange.line); track $index) {<span
+                [class.dialogue__mark]="part.mark"
+                >{{ part.text }}</span
+              >}
+            </p>
+          }
+          @if (page()?.dialogueSource) {
+            <footer class="dialogue__source">— {{ page()?.dialogueSource }}</footer>
+          }
+        </blockquote>
+      }
+    </header>
+  }
+
+  @if (loading()) {
+    <div class="grid">
+      @for (n of [1, 2, 3, 4, 5, 6]; track n) {
+        <div class="skeleton-card"></div>
+      }
+    </div>
+  } @else if (error()) {
+    <p class="notice notice--warn">{{ error() }}</p>
+  } @else if (works().length === 0) {
+    <p class="notice">Nothing here yet.</p>
+  } @else {
+    @for (group of groups(); track group.key) {
+      <section class="group">
+        <header class="group__head" [class.group__head--series]="isSeriesLabel(group.key)">
+          @if (isSeriesLabel(group.key)) {
+            <!-- The series mark: lowercase prefix, oversized glossy-red 235. -->
+            <h2 class="group__title group__title--series">
+              <span class="series__prefix">uranium-</span><span class="series__number">235</span>
+            </h2>
+          } @else {
+            <h2 class="group__title">{{ group.label }}</h2>
+          }
+
+          @if (group.note) {
+            <p class="group__note">{{ group.note }}</p>
+          }
+          <span class="group__count">{{ group.works.length }}</span>
+        </header>
+
+        <ul class="grid stagger">
+          <!-- cardIndex drives which colour this card's tinted syllable takes. -->
+          @for (work of group.works; track work.id; let cardIndex = $index) {
+            <li>
+              <a class="card" [routerLink]="['/', work.section, work.slug]">
+                @if (work.pinned) {
+                  <span class="card__flag">Start here</span>
+                }
+
+                @if (work.seriesNumber) {
+                  <span class="card__number">{{ work.seriesNumber }}</span>
+                }
+
+                <h3 class="card__title">
+                  @if (tintsTitles()) {
+                    @for (piece of tinted(work, cardIndex); track $index) {
+                      <span
+                        [class.card__syllable--green]="piece.tint === 'green'"
+                        [class.card__syllable--red]="piece.tint === 'red'"
+                        >{{ piece.text }}</span
+                      >
+                    }
+                  } @else {
+                    {{ work.title }}
+                  }
+                </h3>
+
+                @if (work.subtitle) {
+                  <p class="card__subtitle">{{ work.subtitle }}</p>
+                }
+
+                @if (work.excerpt) {
+                  <p class="card__excerpt">{{ work.excerpt }}</p>
+                }
+
+                <footer class="card__meta">
+                  @if (work.kind === 'upload') {
+                    @if (work.pdf.hasFile) {
+                      <span class="tag tag--ready">
+                        {{ work.pdf.pageCount ? work.pdf.pageCount + ' pages' : 'Ready to read' }}
+                      </span>
+                    } @else {
+                      <span class="tag tag--waiting">Not yet uploaded</span>
+                    }
+                  } @else if (work.readingMinutes) {
+                    <span class="tag">{{ work.readingMinutes }} min read</span>
+                  }
+
+                  @if (auth.isAdmin() && !work.published) {
+                    <span class="tag tag--draft">Draft</span>
+                  }
+                </footer>
+              </a>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    @if (ungrouped().length > 0) {
+      <section class="group">
+        <header class="group__head">
+          <h2 class="group__title">Unfiled</h2>
+          <p class="group__note">Not yet placed in a collection</p>
+          <span class="group__count">{{ ungrouped().length }}</span>
+        </header>
+
+        <ul class="grid stagger">
+          @for (work of ungrouped(); track work.id) {
+            <li>
+              <a class="card" [routerLink]="['/', work.section, work.slug]">
+                <h3 class="card__title">{{ work.title }}</h3>
+                @if (work.subtitle) {
+                  <p class="card__subtitle">{{ work.subtitle }}</p>
+                }
+              </a>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  }
+</div>

@@ -68,7 +68,7 @@ web_modules/
 # dotenv environment variable files
 .env
 .env.*
-!.env.example
+# (no .env.example is shipped; README documents the variables)
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -145,8 +145,24 @@ vite.config.ts.timestamp-*
 # Claude Code
 claude.md
 CLAUDE.md
-.claude/
 CLAUDE.local.md
+
+# The whole .claude/ directory stays local. It holds the working notes
+# (SESSION_PROMPTS.md), tool permissions, and the project docs — API_KEYS.md,
+# MEMORY.md and TOOLING.md. They live on disk for whoever works on the project;
+# they are not published with the site.
+.claude/
+
+# Angular
+.angular/
+
+# Angular CLI scaffolding that this project does not use. Left on disk so the CLI
+# stays happy, kept out of the repository because neither is ours:
+#   - client/README.md is the generator's boilerplate; the root README is the real one
+#   - app.spec.ts is the generated example test, written against the placeholder
+#     component that was replaced on day one. It fails, and there is no suite yet.
+client/README.md
+client/src/app/app.spec.ts
 
 # Editors
 .idea/

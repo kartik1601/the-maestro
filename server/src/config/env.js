@@ -1,0 +1,97 @@
+import 'dotenv/config';
+import crypto from 'node:crypto';
+
+/**
+ * Every tunable lives here so `.claude/API_KEYS.md` has exactly one source of truth
+ * to document. Nothing else in the codebase reads `process.env` directly.
+ */
+
+const bool = (value, fallback) =>
+  value === undefined ? fallback : /^(1|true|yes|on)$/i.test(value);
+
+const int = (value, fallback) => {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+/**
+ * Secrets are required in production but auto-generated in development so the
+ * prototype boots with zero configuration. An ephemeral secret means every
+ * restart invalidates outstanding tokens, which is fine locally and unacceptable
+ * in production — hence the hard failure below.
+ */
+const ephemeral = (name) => {
+  const generated = crypto.randomBytes(48).toString('hex');
+  ephemeralSecrets.add(name);
+  return generated;
+};
+const ephemeralSecrets = new Set();
+
+export const env = {
+  nodeEnv: process.env.NODE_ENV ?? 'development',
+  get isProduction() {
+    return this.nodeEnv === 'production';
+  },
+
+  port: int(process.env.PORT, 4000),
+  clientOrigin: process.env.CLIENT_ORIGIN ?? 'http://localhost:4200',
+
+  // Absent in development -> an in-process MongoDB is started instead (see db/connect.js).
+  mongoUri: process.env.MONGODB_URI ?? '',
+  mongoDbName: process.env.MONGODB_DB_NAME ?? 'the_maestro',
+
+  jwt: {
+    accessSecret: process.env.JWT_ACCESS_SECRET ?? ephemeral('JWT_ACCESS_SECRET'),
+    refreshSecret: process.env.JWT_REFRESH_SECRET ?? ephemeral('JWT_REFRESH_SECRET'),
+    accessTtl: process.env.JWT_ACCESS_TTL ?? '15m',
+    refreshTtl: process.env.JWT_REFRESH_TTL ?? '7d',
+    issuer: 'the-maestro',
+    audience: 'the-maestro-admin',
+  },
+
+  /**
+   * The admin surface is mounted under this unguessable segment. A request to any
+   * other path never learns that an admin API exists — see routes/admin-gate.js.
+   */
+  adminPortalPath: process.env.ADMIN_PORTAL_PATH ?? 'portal-dev-only',
+
+  /**
+   * Development-only convenience: if no admin exists yet AND all three factors are
+   * supplied here, one is provisioned and the credentials are echoed to the terminal.
+   *
+   * Deliberately undefaulted. Shipping fallback credentials in a public repository
+   * means every clone boots with the same known admin at the same known portal path —
+   * so an unset factor provisions nothing and the server says how to fix it. In
+   * production the author is provisioned once via `npm run admin:create`.
+   */
+  bootstrapAdmin: {
+    displayName: process.env.ADMIN_DISPLAY_NAME ?? 'The Author',
+    username: process.env.ADMIN_USERNAME ?? '',
+    password: process.env.ADMIN_PASSWORD ?? '',
+    authKey: process.env.ADMIN_AUTH_KEY ?? '',
+  },
+
+  uploads: {
+    // MongoDB caps a single BSON document at 16 MB; Buffer-in-document storage
+    // must stay clear of that ceiling. See .claude/MEMORY.md for the GridFS path.
+    maxPdfBytes: int(process.env.MAX_PDF_BYTES, 15 * 1024 * 1024),
+
+    // Images sit inside prose, so the ceiling is about page weight rather than BSON.
+    maxImageBytes: int(process.env.MAX_IMAGE_BYTES, 8 * 1024 * 1024),
+  },
+
+  seedOnBoot: bool(process.env.SEED_ON_BOOT, true),
+};
+
+export const ephemeralSecretNames = () => [...ephemeralSecrets];
+
+if (env.isProduction && ephemeralSecrets.size > 0) {
+  throw new Error(
+    `Refusing to start in production with generated secrets: ${[...ephemeralSecrets].join(', ')}. ` +
+      'Set them explicitly — see .claude/API_KEYS.md.',
+  );
+}
+
+if (env.isProduction && env.adminPortalPath === 'portal-dev-only') {
+  throw new Error('ADMIN_PORTAL_PATH must be set to a private value in production.');
+}

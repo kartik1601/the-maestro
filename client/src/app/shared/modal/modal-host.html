@@ -1,0 +1,48 @@
+@if (modal.active(); as open) {
+  <div class="backdrop" (click)="onBackdrop($event)">
+    <div
+      class="panel"
+      #panel
+      tabindex="-1"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="open.title"
+    >
+      <h2 class="panel__title">{{ open.title }}</h2>
+
+      @if (open.message) {
+        <p class="panel__message">{{ open.message }}</p>
+      }
+
+      @if (open.kind === 'prompt') {
+        <input
+          class="input"
+          #field
+          type="text"
+          [ngModel]="draft()"
+          (ngModelChange)="draft.set($event)"
+          [placeholder]="open.placeholder ?? ''"
+          (keydown.enter)="accept()"
+          [attr.aria-label]="open.title"
+        />
+      }
+
+      <div class="panel__actions">
+        @if (open.kind !== 'alert') {
+          <button class="btn btn--ghost" type="button" (click)="dismiss()">
+            {{ open.cancelLabel ?? 'Cancel' }}
+          </button>
+        }
+        <button
+          class="btn"
+          type="button"
+          [class.btn--primary]="!open.danger"
+          [class.btn--danger]="open.danger"
+          (click)="accept()"
+        >
+          {{ open.confirmLabel ?? (open.kind === 'alert' ? 'OK' : 'Confirm') }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

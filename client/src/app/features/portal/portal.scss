@@ -1,0 +1,67 @@
+.portal {
+  display: grid;
+  place-items: center;
+  min-height: 60vh;
+  padding: var(--space-5);
+}
+
+.portal__card {
+  width: min(100%, 26rem);
+  padding: var(--space-7) var(--space-6);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+}
+
+.portal__title {
+  margin-block: var(--space-3) var(--space-3);
+  font-size: var(--text-2xl);
+}
+
+.portal__note {
+  color: var(--text-muted);
+  font-family: var(--font-serif);
+}
+
+.portal__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-block-start: var(--space-6);
+}
+
+.portal__error {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--accent-warm-soft);
+  color: var(--accent-warm);
+  font-size: var(--text-sm);
+  text-align: center;
+  animation: shake var(--duration-slow) var(--ease-out);
+}
+
+/* A short shake makes a rejection legible without adding a second colour. */
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-5px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+.portal__submit {
+  width: 100%;
+  margin-block-start: var(--space-2);
+}

@@ -1,0 +1,71 @@
+<section class="portal">
+  <div class="portal__card rise">
+    @if (alreadyIn()) {
+      <p class="eyebrow">Already signed in</p>
+      <h1 class="portal__title">You are the author here.</h1>
+      <p class="portal__note">
+        Use the bar at the top of the page to switch between writing and reading.
+      </p>
+    } @else {
+      <p class="eyebrow">Private</p>
+      <h1 class="portal__title">Three things, or nothing.</h1>
+      <p class="portal__note">
+        This entrance only opens for one person, and only for all three together.
+      </p>
+
+      <form class="portal__form" (submit)="submit($event)">
+        <div class="field">
+          <label class="field__label" for="username">Username</label>
+          <input
+            class="input"
+            id="username"
+            name="username"
+            type="text"
+            autocomplete="username"
+            spellcheck="false"
+            required
+            [ngModel]="username()"
+            (ngModelChange)="username.set($event)"
+          />
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="password">Password</label>
+          <input
+            class="input"
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+            [ngModel]="password()"
+            (ngModelChange)="password.set($event)"
+          />
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="authKey">Auth key</label>
+          <input
+            class="input"
+            id="authKey"
+            name="authKey"
+            type="password"
+            autocomplete="one-time-code"
+            required
+            [ngModel]="authKey()"
+            (ngModelChange)="authKey.set($event)"
+          />
+          <p class="field__hint">The third factor. Kept somewhere the other two are not.</p>
+        </div>
+
+        @if (error()) {
+          <p class="portal__error" role="alert">{{ error() }}</p>
+        }
+
+        <button class="btn btn--primary portal__submit" type="submit" [disabled]="submitting()">
+          {{ submitting() ? 'Checking…' : 'Enter' }}
+        </button>
+      </form>
+    }
+  </div>
+</section>

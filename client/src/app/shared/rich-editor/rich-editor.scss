@@ -1,0 +1,131 @@
+.editor {
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  overflow: hidden;
+  transition: border-color var(--duration-base) var(--ease-out);
+
+  &:focus-within {
+    border-color: var(--accent);
+  }
+}
+
+.editor__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  background: var(--surface-sunken);
+  border-block-end: 1px solid var(--border-soft);
+
+  /* The toolbar follows the writer down a long document. */
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+}
+
+.editor__group {
+  display: flex;
+  gap: 2px;
+
+  /* Hairline separators between groups, but not trailing the last one. */
+  &:not(:last-child) {
+    padding-inline-end: var(--space-2);
+    border-inline-end: 1px solid var(--border-soft);
+  }
+}
+
+.tool {
+  display: grid;
+  place-items: center;
+  min-width: 1.85rem;
+  height: 1.85rem;
+  padding-inline: var(--space-1);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-serif);
+  font-size: var(--text-sm);
+  line-height: 1;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    background: var(--surface-inset);
+    color: var(--text-primary);
+  }
+}
+
+.tool--wide {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.tool--on {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.editor__status {
+  margin-inline-start: auto;
+  padding-inline: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.editor__status--error {
+  color: var(--accent-warm);
+}
+
+.editor__surface {
+  padding: var(--space-5);
+  min-height: 16rem;
+  max-height: 70vh;
+  overflow-y: auto;
+
+  .editor--compact & {
+    min-height: 7rem;
+    padding: var(--space-4);
+  }
+}
+
+/**
+ * TipTap's placeholder is a CSS-only affordance: it decorates the first empty
+ * paragraph with a data attribute and we render it as ::before.
+ */
+::ng-deep .editor__surface .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: inline-start;
+  height: 0;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+::ng-deep .editor__surface .ProseMirror {
+  outline: none;
+
+  /* Resizable table columns need visible grips and a fixed layout. */
+  table {
+    table-layout: fixed;
+    width: 100%;
+
+    .column-resize-handle {
+      position: absolute;
+      inset-block: 0;
+      inset-inline-end: -2px;
+      width: 4px;
+      background: var(--accent);
+      cursor: col-resize;
+    }
+  }
+
+  .selectedCell::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--accent-soft);
+    pointer-events: none;
+  }
+}

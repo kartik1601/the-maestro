@@ -1,0 +1,18 @@
+{
+  "name": "the-maestro",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The author's living archive — novels, poems, songs, plays, novelettes.",
+  "scripts": {
+    "postinstall": "npm install --prefix server && npm install --prefix client",
+    "dev": "concurrently --names \"api,web\" --prefix-colors \"green,blue\" --kill-others \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm start --prefix client",
+    "build": "npm run build --prefix client",
+    "seed": "npm run seed --prefix server",
+    "admin:create": "npm run admin:create --prefix server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

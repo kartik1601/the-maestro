@@ -1,0 +1,201 @@
+.about {
+  padding-block-end: var(--space-8);
+}
+
+.about__head {
+  margin-block-end: var(--space-7);
+  padding-block-end: var(--space-5);
+  border-block-end: 1px solid var(--border-soft);
+}
+
+/* The author's own name, set as a nameplate rather than a page title. */
+.about__title {
+  font-size: clamp(var(--text-2xl), 5vw, var(--text-4xl));
+  letter-spacing: 0.02em;
+}
+
+.about__subtitle {
+  margin-block-start: var(--space-3);
+  font-family: var(--font-serif);
+  font-size: var(--text-lg);
+  font-style: italic;
+  color: var(--text-muted);
+  animation-delay: 80ms;
+}
+
+/* The raised cap itself lives in global styles — see `.prose--opening`. */
+.about__body {
+  animation-delay: 140ms;
+}
+
+/* ── Profile ───────────────────────────────────────────────────────────────── */
+
+/**
+ * No panel, no border, no fill. The portrait and the few facts beside it sit
+ * directly on the page next to the prose, so they read as part of the writing
+ * rather than as a record about a person. The only structure is a hairline rule
+ * closing the block off from the paragraphs below.
+ */
+.profile {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  gap: var(--space-5);
+  align-items: center;
+  margin-block: var(--space-6) var(--space-7);
+  padding-block-end: var(--space-6);
+  border-block-end: 1px solid var(--border-soft);
+  animation-delay: 100ms;
+}
+
+.profile__photo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Square by requirement — the aspect ratio holds whatever the source image is. */
+.profile__img,
+.profile__placeholder {
+  aspect-ratio: 1;
+  width: 100%;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}
+
+.profile__img {
+  /* Grayscale at rest keeps a photograph from shouting over the type. */
+  filter: grayscale(100%) contrast(1.02);
+  transition: filter var(--duration-slow) var(--ease-out);
+
+  &:hover {
+    filter: none;
+  }
+}
+
+.profile__placeholder {
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--border-medium);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.profile__photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.profile__upload {
+  cursor: pointer;
+}
+
+/**
+ * Facts run inline as small stacked pairs rather than labelled table rows — the
+ * difference between a note and a form.
+ */
+.profile__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5) var(--space-7);
+  margin: 0;
+}
+
+.profile__fact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.profile__key {
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  opacity: 0.75;
+}
+
+.profile__value {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+}
+
+.profile__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--space-4);
+}
+
+.profile__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+@media (max-width: 40rem) {
+  .profile {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .profile__photo {
+    max-width: 9rem;
+  }
+}
+
+.about__title-edit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-block-end: var(--space-4);
+}
+
+.about__title-input {
+  font-family: var(--font-serif);
+  font-size: var(--text-2xl);
+  font-weight: 600;
+}
+
+.about__subtitle-input {
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.about__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-start: var(--space-4);
+}
+
+.about__saved {
+  font-size: var(--text-xs);
+  color: var(--accent-calm);
+}
+
+.about-skeleton {
+  height: 60vh;
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
+  animation: fade var(--duration-slow) var(--ease-out) both;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding-block: var(--space-9);
+  text-align: center;
+}
+
+.notice--warn {
+  padding: var(--space-5);
+  border: 1px dashed var(--accent-warm);
+  border-radius: var(--radius-lg);
+  color: var(--accent-warm);
+}

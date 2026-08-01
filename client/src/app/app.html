@@ -1,0 +1,87 @@
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="masthead" [class.masthead--scrolled]="scrolled()">
+  <div class="masthead__inner shell">
+    <a class="brand" routerLink="/" aria-label="the maestro — home">
+      <span class="brand__mark" aria-hidden="true"></span>
+      <span class="brand__name">the maestro</span>
+    </a>
+
+    <nav class="nav" [class.nav--open]="menuOpen()" aria-label="Sections">
+      @for (section of sections; track section.key) {
+        <a
+          class="nav__link"
+          [routerLink]="section.path"
+          routerLinkActive="nav__link--active"
+          [routerLinkActiveOptions]="{ exact: section.exact ?? false }"
+        >
+          {{ section.label }}
+        </a>
+      }
+    </nav>
+
+    <div class="masthead__actions">
+      <button
+        class="icon-btn"
+        type="button"
+        (click)="theme.toggle()"
+        [attr.aria-label]="
+          theme.theme() === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'
+        "
+      >
+        {{ theme.theme() === 'dark' ? '☾' : '☀' }}
+      </button>
+
+      <button
+        class="icon-btn nav-toggle"
+        type="button"
+        (click)="menuOpen.set(!menuOpen())"
+        [attr.aria-expanded]="menuOpen()"
+        aria-label="Toggle sections menu"
+      >
+        {{ menuOpen() ? '✕' : '☰' }}
+      </button>
+    </div>
+  </div>
+</header>
+
+@if (auth.isAdmin()) {
+  <!-- Visible only to the author. Toggling edit mode reveals in-place editing
+       across every section without leaving the page being read. -->
+  <div class="author-bar" role="status">
+    <div class="author-bar__inner shell">
+      <span class="author-bar__who">
+        <span class="author-bar__dot" aria-hidden="true"></span>
+        Signed in as {{ auth.adminName() }}
+      </span>
+
+      <div class="author-bar__actions">
+        <!-- Preview is the resting state. Editing is entered deliberately, and the
+             page's own Save and Discard controls appear only once it is. -->
+        @if (auth.editMode()) {
+          <span class="author-bar__mode">Editing</span>
+          <button class="btn btn--ghost" type="button" (click)="toggleEditMode()">Done</button>
+        } @else {
+          <span class="author-bar__mode">Preview</span>
+          <button class="btn btn--primary" type="button" (click)="toggleEditMode()">Edit</button>
+        }
+        <button class="btn btn--quiet" type="button" (click)="signOut()">Sign out</button>
+      </div>
+    </div>
+  </div>
+}
+
+<main id="main" class="main">
+  <router-outlet />
+</main>
+
+<app-modal-host />
+
+<footer class="footer">
+  <div class="footer__inner shell">
+    <p class="footer__line">
+      Everything here is free to read. Written, and still being written, by the author.
+    </p>
+    <p class="footer__meta">the maestro · a living archive</p>
+  </div>
+</footer>

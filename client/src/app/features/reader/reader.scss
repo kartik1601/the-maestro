@@ -1,0 +1,236 @@
+.reader {
+  display: flex;
+  flex-direction: column;
+  /* Fills the viewport below the masthead so the page itself never scrolls. */
+  min-height: calc(100dvh - var(--header-height) - var(--space-7));
+}
+
+/* ── Bar ───────────────────────────────────────────────────────────────────── */
+
+.reader__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding-block-end: var(--space-4);
+  border-block-end: 1px solid var(--border-soft);
+}
+
+.reader__back {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: var(--text-base);
+  transition: background-color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    background: var(--surface-sunken);
+    color: var(--text-primary);
+  }
+}
+
+.reader__identity {
+  margin-inline-end: auto;
+  min-width: 0;
+}
+
+.reader__title {
+  font-size: var(--text-xl);
+  line-height: 1.2;
+}
+
+.reader__subtitle {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.reader__controls {
+  display: flex;
+  gap: var(--space-1);
+  flex: none;
+}
+
+/* ── Stage ─────────────────────────────────────────────────────────────────── */
+
+.reader__stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-height: 60vh;
+  padding: var(--space-5) var(--space-4);
+  background: var(--surface-sunken);
+}
+
+/**
+ * The page itself is a sheet lifted off the surface — the single strongest cue
+ * that this is reading rather than browsing.
+ */
+.reader__paper {
+  flex: 1;
+  height: 100%;
+  min-height: 60vh;
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+}
+
+.page-turn {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 5rem;
+  flex: none;
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-medium);
+  color: var(--text-secondary);
+  font-size: var(--text-2xl);
+  line-height: 1;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    opacity var(--duration-base) var(--ease-out);
+
+  &:hover:not(:disabled) {
+    background: var(--surface-sunken);
+    color: var(--accent);
+  }
+
+  &:disabled {
+    opacity: 0.25;
+    cursor: default;
+  }
+}
+
+/* ── Foot ──────────────────────────────────────────────────────────────────── */
+
+.reader__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-block-start: 1px solid var(--border-soft);
+}
+
+.reader__progress {
+  flex: 1 1 12rem;
+  height: 3px;
+  border-radius: var(--radius-full);
+  background: var(--surface-inset);
+  overflow: hidden;
+}
+
+.reader__progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent-warm);
+  transition: inline-size var(--duration-slow) var(--ease-out);
+}
+
+.reader__count {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.reader__hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* ── Awaiting upload ───────────────────────────────────────────────────────── */
+
+.awaiting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding-block: var(--space-9);
+  text-align: center;
+}
+
+.awaiting__title {
+  font-size: var(--text-2xl);
+}
+
+.awaiting__note {
+  max-width: var(--measure);
+  font-family: var(--font-serif);
+  color: var(--text-muted);
+}
+
+/* ── Admin strip ───────────────────────────────────────────────────────────── */
+
+.admin-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-block-start: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px dashed var(--border-medium);
+  border-radius: var(--radius-lg);
+  background: var(--accent-calm-soft);
+}
+
+.admin-strip__upload {
+  cursor: pointer;
+}
+
+.admin-strip__meta {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-inline-start: auto;
+}
+
+.admin-strip__error {
+  font-size: var(--text-sm);
+  color: var(--accent-warm);
+}
+
+/* ── States ────────────────────────────────────────────────────────────────── */
+
+.reader-skeleton {
+  height: 70vh;
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
+  animation: fade var(--duration-slow) var(--ease-out) both;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding-block: var(--space-9);
+  text-align: center;
+}
+
+@media (max-width: 48rem) {
+  .reader__stage {
+    padding-inline: var(--space-2);
+    gap: var(--space-1);
+  }
+
+  .page-turn {
+    width: 2rem;
+    height: 4rem;
+    font-size: var(--text-xl);
+  }
+
+  .reader__controls {
+    display: none;
+  }
+}

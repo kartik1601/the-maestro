@@ -1,0 +1,56 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: var(--space-5);
+  background: rgb(16 18 21 / 45%);
+  backdrop-filter: blur(2px);
+  animation: fade var(--duration-fast) var(--ease-out) both;
+}
+
+.panel {
+  width: min(100%, 26rem);
+  padding: var(--space-5);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xl);
+  animation: modal-in var(--duration-base) var(--ease-out) both;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.panel__title {
+  font-size: var(--text-xl);
+}
+
+.panel__message {
+  margin-block-start: var(--space-3);
+  color: var(--text-secondary);
+}
+
+.input {
+  margin-block-start: var(--space-4);
+}
+
+.panel__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-block-start: var(--space-5);
+}

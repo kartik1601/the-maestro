@@ -1,0 +1,183 @@
+/**
+ * Design tokens for the-maestro.
+ *
+ * The palette is deliberately closed: tan, beige, cool blue, sage green, plus the
+ * warm neutrals needed to set type. Nothing else. Every colour used anywhere in the
+ * app resolves back to a variable declared here, so the restriction is enforceable
+ * by reading one file.
+ */
+
+:root {
+  /* ── Neutrals ────────────────────────────────────────────────────────────── */
+  /* The site is built on off-white and carbon; these carry almost every surface. */
+  --paper-0: #ffffff;
+  --paper-50: #fbfbfa;
+  --paper-100: #f4f4f2;
+  --paper-200: #eaeae7;
+  --paper-300: #dcdcd8;
+
+  /* Gunmetal through carbon — cool, never brown. */
+  --carbon-900: #101215;
+  --carbon-800: #16191d;
+  --carbon-700: #1d2126;
+  --carbon-600: #262b31;
+  --carbon-500: #333941;
+
+  --ink-900: #1b1d20;
+  --ink-800: #2c3034;
+  --ink-700: #43484e;
+  --ink-500: #6b7178;
+  --ink-400: #8d939a;
+
+  /* ── Accents ─────────────────────────────────────────────────────────────── */
+  /* Used sparingly — titles, marks, small states. Never as a page surface. */
+  --tan-300: #d9c09a;
+  --tan-400: #c9a87c;
+  --tan-500: #a8834f;
+  --tan-600: #8f7350;
+
+  --blue-300: #93aec4;
+  --blue-400: #6b8fab;
+  --blue-500: #416b8d;
+  --blue-600: #33566f;
+
+  --sage-300: #a9b79a;
+  --sage-400: #8a9a7b;
+  --sage-500: #617352;
+  --sage-600: #57654c;
+
+  /**
+   * Uranium-235 signature colours. These sit outside the four-hue palette on
+   * purpose — the series mark is the one place the site is allowed to shout, and
+   * the author asked for red and green specifically. Used nowhere else.
+   */
+  --u235-green: #2f7d4f;
+  --u235-red: #c0392b;
+  --u235-red-bright: #e8413a;
+  --u235-red-deep: #8e1b13;
+
+  /* ── Semantic surface + text ─────────────────────────────────────────────── */
+  --surface-page: var(--paper-50);
+  --surface-raised: var(--paper-0);
+  --surface-sunken: var(--paper-100);
+  --surface-inset: var(--paper-200);
+
+  --border-soft: rgb(27 29 32 / 10%);
+  --border-medium: rgb(27 29 32 / 16%);
+  --border-strong: rgb(27 29 32 / 28%);
+
+  --text-primary: var(--ink-900);
+  --text-secondary: var(--ink-700);
+  --text-muted: var(--ink-500);
+  --text-inverse: var(--paper-50);
+
+  --accent: var(--blue-500);
+  --accent-hover: var(--blue-600);
+  --accent-soft: rgb(65 107 141 / 10%);
+  --accent-warm: var(--tan-500);
+  --accent-warm-soft: rgb(168 131 79 / 12%);
+  --accent-calm: var(--sage-500);
+  --accent-calm-soft: rgb(97 115 82 / 12%);
+
+  --focus-ring: 0 0 0 2px rgb(65 107 141 / 45%);
+
+  /* ── Type ────────────────────────────────────────────────────────────────── */
+  /* System stacks only — the site must render identically with no network. */
+  --font-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+  --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+  --text-4xl: 3rem;
+  --text-5xl: 4rem;
+
+  /* The measure prose is set to — roughly 65 characters. */
+  --measure: 34rem;
+  --measure-wide: 46rem;
+
+  /* ── Space + shape ───────────────────────────────────────────────────────── */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+
+  /**
+   * Near-square by design. The reference points are Confluence and Blogger, where
+   * panels read as sheets of paper with a hairline border rather than as floating
+   * pills. `--radius-full` survives only for genuinely circular marks — status
+   * dots and the like — never for buttons or cards.
+   */
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 3px;
+  --radius-xl: 4px;
+  --radius-full: 999px;
+
+  /**
+   * Shallow and tight. Panels are defined by their border first and their shadow
+   * second — a deep drop shadow would undo the flat, document-like feel.
+   */
+  --shadow-sm: 0 1px 1px rgb(27 29 32 / 5%);
+  --shadow-md: 0 1px 3px rgb(27 29 32 / 8%);
+  --shadow-lg: 0 4px 12px rgb(27 29 32 / 10%);
+  --shadow-xl: 0 12px 32px rgb(27 29 32 / 14%);
+
+  /* ── Motion ──────────────────────────────────────────────────────────────── */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --duration-fast: 140ms;
+  --duration-base: 240ms;
+  --duration-slow: 420ms;
+  --duration-page: 520ms;
+
+  --header-height: 4.5rem;
+}
+
+/**
+ * Dark theme: carbon black, cool and neutral. The accent hues are lifted a step so
+ * they stay legible against it, but they remain hints — the surfaces themselves are
+ * always grey, never tinted.
+ */
+:root[data-theme='dark'] {
+  --surface-page: var(--carbon-900);
+  --surface-raised: var(--carbon-800);
+  --surface-sunken: #0c0e10;
+  --surface-inset: var(--carbon-700);
+
+  --border-soft: rgb(233 236 239 / 9%);
+  --border-medium: rgb(233 236 239 / 15%);
+  --border-strong: rgb(233 236 239 / 28%);
+
+  --text-primary: #e9ecef;
+  --text-secondary: #bfc5cc;
+  --text-muted: #888f97;
+  --text-inverse: var(--carbon-900);
+
+  --accent: var(--blue-300);
+  --accent-hover: #b4cadb;
+  --accent-soft: rgb(147 174 196 / 14%);
+  --accent-warm: var(--tan-300);
+  --accent-warm-soft: rgb(217 192 154 / 13%);
+  --accent-calm: var(--sage-300);
+  --accent-calm-soft: rgb(169 183 154 / 13%);
+
+  --focus-ring: 0 0 0 2px rgb(147 174 196 / 55%);
+
+  --shadow-sm: 0 1px 1px rgb(0 0 0 / 45%);
+  --shadow-md: 0 1px 3px rgb(0 0 0 / 50%);
+  --shadow-lg: 0 4px 14px rgb(0 0 0 / 55%);
+  --shadow-xl: 0 12px 36px rgb(0 0 0 / 60%);
+}

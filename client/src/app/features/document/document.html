@@ -1,0 +1,91 @@
+@if (loading()) {
+  <div class="shell shell--narrow">
+    <div class="doc-skeleton"></div>
+  </div>
+} @else if (notFound()) {
+  <div class="shell empty">
+    <h1>Not found</h1>
+    <p>There is nothing at this address.</p>
+    <a class="btn btn--ghost" routerLink="/">Back to the beginning</a>
+  </div>
+} @else if (work(); as work) {
+  <article class="doc shell shell--narrow">
+    <a class="doc__back" [routerLink]="backLink()">← {{ work.section }}</a>
+
+    @if (editing()) {
+      <!-- Title and subtitle are plain inputs; only the body needs a rich editor. -->
+      <div class="doc__title-edit">
+        <input
+          class="input doc__title-input"
+          type="text"
+          [ngModel]="draftTitle()"
+          (ngModelChange)="draftTitle.set($event)"
+          aria-label="Title"
+          placeholder="Title"
+        />
+        <input
+          class="input doc__subtitle-input"
+          type="text"
+          [ngModel]="draftSubtitle()"
+          (ngModelChange)="draftSubtitle.set($event)"
+          aria-label="Subtitle"
+          placeholder="Subtitle"
+        />
+      </div>
+    } @else {
+      <header class="doc__head">
+        <h1 class="doc__title rise">{{ work.title }}</h1>
+        @if (work.subtitle) {
+          <p class="doc__subtitle rise">{{ work.subtitle }}</p>
+        }
+        <p class="doc__meta rise">
+          @if (work.readingMinutes) {
+            {{ work.readingMinutes }} min read
+          }
+          @if (work.publishedAt) {
+            · {{ work.publishedAt | date: 'MMMM y' }}
+          }
+          @if (!work.published) {
+            · <span class="doc__draft">Draft</span>
+          }
+        </p>
+      </header>
+    }
+
+    @if (editing()) {
+      <app-rich-editor
+        [value]="draftBody()"
+        [placeholder]="'Write it here…'"
+        (valueChange)="draftBody.set($event)"
+      />
+
+      <div class="doc__actions">
+        <button
+          class="btn btn--primary"
+          type="button"
+          [disabled]="!dirty() || saving()"
+          (click)="save()"
+        >
+          {{ saving() ? 'Saving…' : 'Save' }}
+        </button>
+
+        <button class="btn btn--ghost" type="button" [disabled]="!dirty()" (click)="discard()">
+          Discard
+        </button>
+
+        <button class="btn btn--quiet" type="button" (click)="togglePublished()">
+          {{ work.published ? 'Published — unpublish' : 'Draft — publish' }}
+        </button>
+
+        @if (savedAt(); as saved) {
+          <span class="doc__saved">Saved at {{ saved | date: 'HH:mm:ss' }}</span>
+        }
+        @if (saveError()) {
+          <span class="doc__error">{{ saveError() }}</span>
+        }
+      </div>
+    } @else {
+      <div class="doc__body prose rise" [innerHTML]="work.body | authoredHtml"></div>
+    }
+  </article>
+}

@@ -1,0 +1,45 @@
+<div class="editor" [class.editor--compact]="compact()">
+  <div class="editor__toolbar" role="toolbar" aria-label="Formatting">
+    @for (group of tools; track $index) {
+      <div class="editor__group">
+        @for (tool of group; track tool.id) {
+          <button
+            class="tool"
+            type="button"
+            [class.tool--on]="isActive(tool)"
+            [class.tool--wide]="tool.glyph.length > 1"
+            [attr.aria-label]="tool.label"
+            [attr.aria-pressed]="tool.kind === 'action' ? null : isActive(tool)"
+            [title]="tool.label"
+            (click)="run(tool)"
+          >
+            {{ tool.glyph }}
+          </button>
+        }
+      </div>
+    }
+
+    @if (uploading()) {
+      <span class="editor__status">Uploading…</span>
+    } @else if (uploadError()) {
+      <span class="editor__status editor__status--error">{{ uploadError() }}</span>
+    }
+  </div>
+
+  <!-- TipTap mounts its contenteditable surface here. Dropping or pasting an image
+       onto it takes the same upload path as the toolbar button. -->
+  <div
+    class="editor__surface prose"
+    #surface
+    (drop)="onDrop($event)"
+    (paste)="onPaste($event)"
+  ></div>
+
+  <input
+    class="visually-hidden"
+    #file
+    type="file"
+    accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+    (change)="onFileChosen($event)"
+  />
+</div>

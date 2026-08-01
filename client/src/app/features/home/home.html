@@ -1,0 +1,211 @@
+<app-refresh-pill
+  [visible]="sync.stale()"
+  [busy]="refreshing()"
+  (refresh)="refresh()"
+/>
+
+<section class="hero shell">
+  @if (editing()) {
+    <!-- Every string on this page is stored in MongoDB and edited here. -->
+    <div class="page-edit">
+      <div class="field">
+        <label class="field__label" for="verse">Heading verse</label>
+        <textarea
+          class="input page-edit__verse"
+          id="verse"
+          rows="4"
+          [ngModel]="draftVerse()"
+          (ngModelChange)="draftVerse.set($event)"
+        ></textarea>
+        <p class="field__hint">One line per line.</p>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="verseSource">Attribution</label>
+        <input
+          class="input"
+          id="verseSource"
+          type="text"
+          [ngModel]="draftVerseSource()"
+          (ngModelChange)="draftVerseSource.set($event)"
+        />
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="subtitle">Sub-heading</label>
+        <input
+          class="input"
+          id="subtitle"
+          type="text"
+          [ngModel]="draftSubtitle()"
+          (ngModelChange)="draftSubtitle.set($event)"
+        />
+      </div>
+
+      <div class="page-edit__actions">
+        <button
+          class="btn btn--primary"
+          type="button"
+          [disabled]="!pageDirty() || savingPage()"
+          (click)="savePage()"
+        >
+          {{ savingPage() ? 'Saving…' : 'Save' }}
+        </button>
+        <button
+          class="btn btn--ghost"
+          type="button"
+          [disabled]="!pageDirty()"
+          (click)="discardPage()"
+        >
+          Discard
+        </button>
+      </div>
+    </div>
+  } @else {
+    <!-- The verse is the page's heading. -->
+    <h1 class="verse rise">
+      @for (line of verseLines(); track $index) {
+        <span class="verse__line">{{ line }}</span>
+      }
+      @if (page()?.verseSource) {
+        <span class="verse__source">— {{ page()?.verseSource }}</span>
+      }
+    </h1>
+
+    @if (page()?.subtitle) {
+      <p class="hero__subheading rise">{{ page()?.subtitle }}</p>
+    }
+  }
+
+  <nav class="hero__links stagger" aria-label="Browse the work">
+    @for (section of sections; track section.key) {
+      <a class="hero__link" [routerLink]="section.path">
+        <span class="hero__link-label">{{ section.label }}</span>
+      </a>
+    }
+  </nav>
+</section>
+
+<section class="feed shell shell--narrow">
+  <header class="feed__header">
+    <h2 class="feed__title">Blogs</h2>
+    <p class="feed__hint">Read along. React if something lands.</p>
+  </header>
+
+  <!-- The composer exists only for the author, and only while editing. -->
+  @if (editing()) {
+    <div class="composer rise">
+      <app-rich-editor
+        [value]="draft()"
+        [compact]="true"
+        placeholder="What happened today?"
+        (valueChange)="draft.set($event)"
+      />
+      <div class="composer__actions">
+        <button
+          class="btn btn--primary"
+          type="button"
+          [disabled]="!hasDraft() || posting()"
+          (click)="publish()"
+        >
+          {{ posting() ? 'Posting…' : 'Post' }}
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="skeletons">
+      @for (n of [1, 2, 3]; track n) {
+        <div class="skeleton"></div>
+      }
+    </div>
+  } @else if (error()) {
+    <p class="notice notice--warn">{{ error() }}</p>
+  } @else if (posts().length === 0) {
+    <p class="notice">Nothing posted yet.</p>
+  } @else {
+    <ol class="posts stagger">
+      @for (post of posts(); track post.id) {
+        <li class="post" [class.post--pinned]="post.pinned">
+          @if (post.pinned) {
+            <span class="post__pin">Pinned</span>
+          }
+
+          @if (editingId() === post.id) {
+            <app-rich-editor
+              [value]="editDraft()"
+              [compact]="true"
+              placeholder="Rewrite this post…"
+              (valueChange)="editDraft.set($event)"
+            />
+            <div class="post__edit-actions">
+              <button
+                class="btn btn--primary"
+                type="button"
+                [disabled]="savingEdit()"
+                (click)="saveEdit(post)"
+              >
+                {{ savingEdit() ? 'Saving…' : 'Save' }}
+              </button>
+              <button class="btn btn--ghost" type="button" (click)="cancelEditing()">
+                Discard
+              </button>
+            </div>
+          } @else {
+            <article class="post__body prose" [innerHTML]="post.body | authoredHtml"></article>
+
+            @if (post.linkedWork; as work) {
+              <a class="post__work" [routerLink]="['/', work.section, work.slug]">
+                {{ work.title }} →
+              </a>
+            }
+          }
+
+          <footer class="post__footer">
+            <time class="post__time" [attr.datetime]="post.createdAt">
+              {{ post.createdAt | date: 'd MMMM y' }}
+            </time>
+
+            <div class="reactions" role="group" aria-label="React to this post">
+              @for (emote of emotes; track emote) {
+                <button
+                  class="reaction"
+                  type="button"
+                  [class.reaction--mine]="hasReacted(post, emote)"
+                  [class.reaction--empty]="countOf(post, emote) === 0"
+                  [attr.aria-pressed]="hasReacted(post, emote)"
+                  [attr.aria-label]="emoteMeta[emote].label"
+                  [title]="emoteMeta[emote].label"
+                  (click)="react(post, emote)"
+                >
+                  <span class="reaction__glyph" aria-hidden="true">{{ emoteMeta[emote].glyph }}</span>
+                  @if (countOf(post, emote) > 0) {
+                    <span class="reaction__count">{{ countOf(post, emote) }}</span>
+                  }
+                </button>
+              }
+            </div>
+          </footer>
+
+          @if (editing() && editingId() !== post.id) {
+            <div class="post__admin">
+              <button class="post__admin-btn" type="button" (click)="startEditing(post)">
+                Edit
+              </button>
+              <button
+                class="post__admin-btn"
+                type="button"
+                [class.post__admin-btn--on]="post.pinned"
+                (click)="togglePinned(post)"
+              >
+                {{ post.pinned ? 'Unpin' : 'Pin' }}
+              </button>
+              <button class="post__admin-btn" type="button" (click)="remove(post)">Delete</button>
+            </div>
+          }
+        </li>
+      }
+    </ol>
+  }
+</section>
