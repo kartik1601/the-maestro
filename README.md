@@ -33,7 +33,13 @@ npm run build          # output: dist/client/browser
 Those two values are injected at build time by `client/scripts/write-env.mjs`; unset,
 the build falls back to placeholders the server will not accept. The host must also
 rewrite unknown paths to `index.html` — `client/public/_redirects` does this on
-Netlify and Cloudflare Pages.
+Netlify and Cloudflare Pages, and `vercel.json` does it on Vercel.
+
+On Vercel the repository root is the project root: `vercel.json` pins the build command
+and the output directory (`client/dist/client/browser` — note the `browser/` level the
+Angular application builder adds, which is not Vercel's `dist` default). `API_BASE` and
+`ADMIN_PORTAL_PATH` go in the project's environment variables; without them the bundle
+ships the placeholder admin path and the portal route will not open.
 
 **API** — any Node host. Environment:
 
