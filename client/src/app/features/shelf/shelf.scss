@@ -293,18 +293,6 @@
   }
 }
 
-.card__flag {
-  align-self: flex-start;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  background: var(--accent-warm-soft);
-  color: var(--accent-warm);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 /**
  * The series number sits behind the title as a large ghosted numeral — it reads as
  * shelf position without competing with the title for attention.

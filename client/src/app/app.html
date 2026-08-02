@@ -1,67 +1,82 @@
 <a class="skip-link" href="#main">Skip to content</a>
 
+<!--
+  The mark itself, rendered in two places: inline in the masthead, where a pointer
+  opens it on hover, and inside the panel below the bar, where a tap opens it on a
+  phone. One template rather than two copies — the chain is thirty lines of nuclides
+  and keeping two of them in step by hand is a promise nobody keeps.
+-->
+<ng-template #reactionMark>
+  <span class="reaction" aria-hidden="true">
+    <!-- Arrives on hover, from the left. -->
+    <span class="reaction__in">
+      <span class="nuc nuc--neutron">
+        <span class="nuc__a">1</span><span class="nuc__z">0</span><span class="nuc__sym">n</span>
+      </span>
+      <span class="reaction__op">+</span>
+    </span>
+
+    <!-- The one part that is always visible, and never moves. -->
+    <span class="nuc nuc--fuel reaction__anchor">
+      <span class="nuc__a">235</span><span class="nuc__z">92</span
+      ><span class="nuc__sym">U</span>
+    </span>
+
+    <!-- Unfolds to the right. -->
+    <span class="reaction__out">
+      <span class="reaction__arrow">→</span>
+      <span class="nuc nuc--excited">
+        <span class="nuc__a">236</span><span class="nuc__z">92</span
+        ><span class="nuc__sym">U<sup class="nuc__star">*</sup></span>
+      </span>
+      <span class="reaction__arrow">→</span>
+      <span class="nuc nuc--product">
+        <span class="nuc__a">141</span><span class="nuc__z">56</span
+        ><span class="nuc__sym">Ba</span>
+      </span>
+      <span class="reaction__op">+</span>
+      <span class="nuc nuc--product">
+        <span class="nuc__a">92</span><span class="nuc__z">36</span
+        ><span class="nuc__sym">Kr</span>
+      </span>
+      <span class="reaction__op">+</span>
+      <span class="nuc nuc--neutron">
+        <span class="reaction__count">3</span><span class="nuc__a">1</span
+        ><span class="nuc__z">0</span><span class="nuc__sym">n</span>
+      </span>
+      <span class="reaction__op">+</span>
+      <span class="reaction__energy">Energy</span>
+    </span>
+  </span>
+</ng-template>
+
 <header class="masthead" [class.masthead--scrolled]="scrolled()">
   <div class="masthead__inner shell">
     <!--
-      At rest only the nuclide shows. Hovering brings a neutron in from the left and
-      the reaction unfolds outward from that same spot — the cursor is the neutron.
-      The wordmark fades as the products take its place.
+      At rest only the nuclide shows. On a pointer, hovering brings a neutron in from
+      the left and the reaction unfolds outward from that same spot — the cursor is the
+      neutron, and the wordmark fades as the products take its place. On a touch screen
+      there is no room for that, so a tap opens the panel below the bar instead.
+
+      Not a link either way. Wrapping it in the home anchor meant every attempt to
+      watch it unfold was a click away from navigating off the page being read.
     -->
-    <a class="brand" routerLink="/" aria-label="the maestro — home">
-      <!--
-        The isotope at rest; the whole fission chain on hover. Built from <sup> and
-        <sub> rather than a maths renderer — it is six symbols, and pulling in KaTeX
-        to set them would cost more than the entire rest of the page.
-      -->
-      <span class="brand__element">
-      <span class="reaction" aria-hidden="true">
-        <!-- Arrives on hover, from the left. -->
-        <span class="reaction__in">
-          <span class="nuc nuc--neutron">
-            <span class="nuc__a">1</span><span class="nuc__z">0</span><span class="nuc__sym">n</span>
-          </span>
-          <span class="reaction__op">+</span>
-        </span>
-
-        <!-- The one part that is always visible, and never moves. -->
-        <span class="nuc nuc--fuel reaction__anchor">
-          <span class="nuc__a">235</span><span class="nuc__z">92</span
-          ><span class="nuc__sym">U</span>
-        </span>
-
-        <!-- Unfolds to the right. -->
-        <span class="reaction__out">
-          <span class="reaction__arrow">→</span>
-          <span class="nuc nuc--excited">
-            <span class="nuc__a">236</span><span class="nuc__z">92</span
-            ><span class="nuc__sym">U<sup class="nuc__star">*</sup></span>
-          </span>
-          <span class="reaction__arrow">→</span>
-          <span class="nuc nuc--product">
-            <span class="nuc__a">141</span><span class="nuc__z">56</span
-            ><span class="nuc__sym">Ba</span>
-          </span>
-          <span class="reaction__op">+</span>
-          <span class="nuc nuc--product">
-            <span class="nuc__a">92</span><span class="nuc__z">36</span
-            ><span class="nuc__sym">Kr</span>
-          </span>
-          <span class="reaction__op">+</span>
-          <span class="nuc nuc--neutron">
-            <span class="reaction__count">3</span><span class="nuc__a">1</span
-            ><span class="nuc__z">0</span><span class="nuc__sym">n</span>
-          </span>
-          <span class="reaction__op">+</span>
-          <span class="reaction__energy">Energy</span>
-        </span>
-      </span>
-      </span>
+    <div class="brand">
+      <button
+        class="brand__element"
+        type="button"
+        (click)="toggleReaction()"
+        [attr.aria-expanded]="reactionOpen()"
+        aria-label="Uranium-235 fission — show the equation"
+      >
+        <ng-container [ngTemplateOutlet]="reactionMark" />
+      </button>
 
       <!-- Both this and the name collapse away while the reaction is open. -->
       <span class="brand__divider" aria-hidden="true"></span>
 
-      <span class="brand__name">the maestro</span>
-    </a>
+      <a class="brand__name" routerLink="/" aria-label="the maestro — home">the maestro</a>
+    </div>
 
     <nav class="nav" [class.nav--open]="menuOpen()" aria-label="Sections">
       @for (section of sections; track section.key) {
@@ -99,6 +114,19 @@
       </button>
     </div>
   </div>
+
+  <!--
+    Touch only. The chain is far wider than a phone and cannot be shown inline there,
+    so it gets a shelf of its own beneath the bar where it is free to wrap onto as many
+    lines as it needs.
+  -->
+  @if (reactionOpen()) {
+    <div class="reaction-panel">
+      <div class="reaction-panel__inner shell">
+        <ng-container [ngTemplateOutlet]="reactionMark" />
+      </div>
+    </div>
+  }
 </header>
 
 @if (auth.isAdmin()) {

@@ -9,6 +9,7 @@ import { SyncService } from '../../core/sync.service';
 import { EMOTE_META, EMOTE_ORDER, Emote, Page, Post, SECTION_META } from '../../core/models';
 import { RichEditorComponent } from '../../shared/rich-editor/rich-editor';
 import { AuthoredHtmlPipe } from '../../shared/safe-html.pipe';
+import { ProseTablesDirective } from '../../shared/prose-tables.directive';
 import { RefreshPillComponent } from '../../shared/refresh-pill/refresh-pill';
 import { ModalService } from '../../shared/modal/modal.service';
 
@@ -23,6 +24,7 @@ const SLUG = 'blogs';
     RichEditorComponent,
     AuthoredHtmlPipe,
     RefreshPillComponent,
+    ProseTablesDirective,
   ],
   templateUrl: './home.html',
   styleUrl: './home.scss',

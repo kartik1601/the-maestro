@@ -227,6 +227,31 @@ p {
     }
   }
 
+  /**
+   * The scroll container the prose-tables directive wraps every table in. Sitting
+   * outside `> * + *` spacing would lose the table's top margin, so it inherits the
+   * flow like any other block and the table inside it carries none of its own.
+   */
+  .table-scroll {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+
+    /* Momentum scrolling leaves the cell borders looking cut off at the edge unless
+       the container has an edge of its own. */
+    border-radius: var(--radius-sm);
+
+    &:focus-visible {
+      outline: 2px solid var(--accent-warm);
+      outline-offset: 2px;
+    }
+
+    table {
+      /* Below this a table stops being readable and starts being a stack of
+         fragments; past it the container scrolls rather than the page. */
+      min-width: 30rem;
+    }
+  }
+
   table {
     width: 100%;
     border-collapse: collapse;

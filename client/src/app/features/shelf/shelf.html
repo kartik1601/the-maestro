@@ -237,10 +237,6 @@
           @for (work of group.works; track work.id; let cardIndex = $index) {
             <li>
               <a class="card" [routerLink]="['/', work.section, work.slug]">
-                @if (work.pinned) {
-                  <span class="card__flag">Start here</span>
-                }
-
                 @if (work.seriesNumber) {
                   <span class="card__number">{{ work.seriesNumber }}</span>
                 }

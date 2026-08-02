@@ -74,13 +74,26 @@
   align-items: center;
   gap: var(--space-3);
   color: var(--text-primary);
-  text-decoration: none;
   margin-inline-end: auto;
+
+  /* Lets the wordmark shrink rather than force the masthead wider than the screen. */
+  min-width: 0;
 }
 
+/**
+ * A button because on touch it is one — it opens the panel below the bar. Where a
+ * pointer exists, hover does the work and the press does nothing, so the cursor says
+ * so rather than promising a click that will not answer.
+ */
 .brand__element {
   display: inline-flex;
   align-items: center;
+  padding: 0;
+  color: inherit;
+
+  @media (hover: hover) and (pointer: fine) {
+    cursor: default;
+  }
 }
 
 .brand__divider {
@@ -104,12 +117,25 @@
     margin 260ms var(--ease-out);
 }
 
-.brand__element:hover ~ .brand__divider,
-.brand__element:hover ~ .brand__name {
-  max-width: 0;
-  opacity: 0;
-  /* Cancels the flex gap as well, so nothing is left holding a space. */
-  margin-inline-start: calc(var(--space-3) * -1);
+/**
+ * Everything the reaction does on hover is gated on a real pointer.
+ *
+ * A touch screen reports a hover when a finger lands and then holds that state until
+ * something else is tapped — so on a phone the equation would latch open, collapse the
+ * wordmark that is now the only way home, and unfold 40rem of nuclides across a screen
+ * a fifth that wide. There is no room for it there and no gesture to close it, so on
+ * touch the mark simply stays at rest as ²³⁵U.
+ */
+@media (hover: hover) and (pointer: fine) {
+  .brand__element:hover ~ .brand__divider,
+  .brand__element:hover ~ .brand__name,
+  .brand__element:focus-visible ~ .brand__divider,
+  .brand__element:focus-visible ~ .brand__name {
+    max-width: 0;
+    opacity: 0;
+    /* Cancels the flex gap as well, so nothing is left holding a space. */
+    margin-inline-start: calc(var(--space-3) * -1);
+  }
 }
 
 /* ── The reaction mark ─────────────────────────────────────────────────────── */
@@ -175,16 +201,24 @@
  * Waits for the name to clear (260ms) before starting, then unfolds over 900ms —
  * slow enough to read as a reaction propagating rather than a panel appearing.
  */
-.brand__element:hover {
-  .reaction__in,
-  .reaction__out {
-    max-width: 40rem;
-    opacity: 1;
-    transform: none;
-    transition:
-      max-width 900ms var(--ease-out) 260ms,
-      opacity 600ms var(--ease-out) 260ms,
-      transform 900ms var(--ease-out) 260ms;
+/**
+ * Focus opens it too. The mark is a button now, and one that answered a mouse but sat
+ * inert under a keyboard would be a control in name only — this is also the only way
+ * a reader who never uses a pointer gets to see the chain at all.
+ */
+@media (hover: hover) and (pointer: fine) {
+  .brand__element:hover,
+  .brand__element:focus-visible {
+    .reaction__in,
+    .reaction__out {
+      max-width: 40rem;
+      opacity: 1;
+      transform: none;
+      transition:
+        max-width 900ms var(--ease-out) 260ms,
+        opacity 600ms var(--ease-out) 260ms,
+        transform 900ms var(--ease-out) 260ms;
+    }
   }
 }
 
@@ -269,13 +303,20 @@
   color: var(--accent-warm);
 }
 
+/* The only way home — the reaction beside it is inert. */
 .brand__name {
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
   max-width: 20rem;
   font-family: var(--font-serif);
   font-size: var(--text-xl);
   letter-spacing: -0.02em;
   white-space: nowrap;
+  color: var(--text-primary);
+  text-decoration: none;
+
+  /* Comfortably past the 24px touch target the wordmark alone would give. */
+  padding-block: var(--space-2);
 }
 
 .nav {
@@ -359,6 +400,60 @@
 
 .nav-toggle {
   display: none;
+}
+
+/* ── The reaction panel (touch) ────────────────────────────────────────────── */
+
+/**
+ * What the hover state is on a desktop, given room to breathe.
+ *
+ * Inline, the chain is held on one line by `nowrap` and runs to about 40rem — three
+ * times a phone's width. Here it is allowed to wrap, so it sets itself over two or
+ * three lines and the masthead grows downward by the height it needs rather than
+ * pushing the page sideways.
+ */
+.reaction-panel {
+  overflow: hidden;
+  background: var(--surface-sunken);
+  border-block-start: 1px solid var(--border-soft);
+  animation: reaction-open var(--duration-base) var(--ease-out) both;
+}
+
+.reaction-panel__inner {
+  padding-block: var(--space-4);
+}
+
+.reaction-panel .reaction {
+  /* The wings are collapsed by default so the inline mark stays a single nuclide.
+     In here the whole chain is the point, so they are released outright — no
+     transition, because the panel's own open animation already carries the motion. */
+  flex-wrap: wrap;
+  white-space: normal;
+  row-gap: var(--space-2);
+
+  .reaction__in,
+  .reaction__out {
+    max-width: none;
+    opacity: 1;
+    transform: none;
+    transition: none;
+    flex-wrap: wrap;
+    row-gap: var(--space-2);
+  }
+}
+
+@keyframes reaction-open {
+  from {
+    /* Tall enough for the three lines it can reach; the container is `overflow:
+       hidden`, so an approximation that errs high costs nothing but a slightly
+       quicker-looking open. */
+    max-height: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 12rem;
+    opacity: 1;
+  }
 }
 
 /* ── Author bar ────────────────────────────────────────────────────────────── */
@@ -451,6 +546,34 @@
     display: grid;
   }
 
+  .masthead__inner {
+    gap: var(--space-3);
+  }
+
+  /* The mark and the wordmark both come down a step so the two of them, the theme
+     toggle and the menu button all fit one row without wrapping. */
+  .reaction {
+    font-size: calc(var(--text-lg) * 1.05);
+  }
+
+  .brand__name {
+    font-size: var(--text-lg);
+  }
+
+  /* Taller than it needs to be for the sake of thumbs. */
+  .icon-btn {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  /* Enough sections to outrun a short screen in landscape, so the sheet scrolls
+     rather than running off the bottom with no way to reach the last link. */
+  .nav {
+    max-height: calc(100dvh - var(--header-height));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
   .nav {
     position: fixed;
     inset: var(--header-height) 0 auto;
@@ -487,5 +610,20 @@
   .nav__link--active::after {
     inset-inline: var(--space-4);
     inset-block-end: var(--space-2);
+  }
+}
+
+/**
+ * Phones. The divider goes rather than the wordmark: the mark identifies the site and
+ * the wordmark is the link home, so both have to survive — the rule between them is
+ * the only part that can be spent.
+ */
+@media (max-width: 26rem) {
+  .brand__divider {
+    display: none;
+  }
+
+  .brand {
+    gap: var(--space-2);
   }
 }

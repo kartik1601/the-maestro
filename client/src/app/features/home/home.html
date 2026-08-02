@@ -153,7 +153,11 @@
               </button>
             </div>
           } @else {
-            <article class="post__body prose" [innerHTML]="post.body | authoredHtml"></article>
+            <article
+              class="post__body prose"
+              appProseTables
+              [innerHTML]="post.body | authoredHtml"
+            ></article>
 
             @if (post.linkedWork; as work) {
               <a class="post__work" [routerLink]="['/', work.section, work.slug]">

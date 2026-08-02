@@ -8,6 +8,7 @@ import { Page, Profile } from '../../core/models';
 import { SyncService } from '../../core/sync.service';
 import { RichEditorComponent } from '../../shared/rich-editor/rich-editor';
 import { AuthoredHtmlPipe } from '../../shared/safe-html.pipe';
+import { ProseTablesDirective } from '../../shared/prose-tables.directive';
 import { RefreshPillComponent } from '../../shared/refresh-pill/refresh-pill';
 
 const SLUG = 'about-the-author';
@@ -25,6 +26,7 @@ const AUTHOR_PORTRAIT_KEY = 'author-portrait';
     RichEditorComponent,
     AuthoredHtmlPipe,
     RefreshPillComponent,
+    ProseTablesDirective,
   ],
   templateUrl: './about.html',
   styleUrl: './about.scss',

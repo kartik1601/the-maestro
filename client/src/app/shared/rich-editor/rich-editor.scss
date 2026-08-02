@@ -145,3 +145,35 @@
     pointer-events: none;
   }
 }
+
+/* ── Small screens ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 40rem) {
+  .editor__surface {
+    padding: var(--space-4);
+  }
+
+  /* Thumb-sized. The toolbar already wraps, so the extra height costs a row at
+     most and buys targets that can actually be hit while holding the phone. */
+  .tool {
+    min-width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  /**
+   * ProseMirror wraps every table in `div.tableWrapper`, which is what scrolls. The
+   * table keeps `table-layout: fixed` so the column-resize grips still land where the
+   * writer put them; without a floor on its width, fixed layout would divide a phone's
+   * screen between the columns and leave each one too narrow to type into.
+   */
+  ::ng-deep .editor__surface .ProseMirror {
+    .tableWrapper {
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+    }
+
+    table {
+      min-width: 30rem;
+    }
+  }
+}
