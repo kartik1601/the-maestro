@@ -1,0 +1,3 @@
+# The app routes on the client, so every unknown path must fall through to it.
+# Without this, reloading on /novels or the admin portal path returns a CDN 404.
+/*    /index.html   200
