@@ -1,6 +1,17 @@
 import { Injectable, signal } from '@angular/core';
 
-export type ModalKind = 'confirm' | 'prompt' | 'alert';
+export type ModalKind = 'confirm' | 'prompt' | 'alert' | 'form';
+
+export interface ModalField {
+  name: string;
+  label: string;
+  type?: 'text' | 'number';
+  value?: string;
+  min?: number;
+  max?: number;
+}
+
+export type ModalResult = boolean | string | Record<string, string> | null;
 
 export interface ModalRequest {
   kind: ModalKind;
@@ -9,6 +20,8 @@ export interface ModalRequest {
   /** Prompt only. */
   value?: string;
   placeholder?: string;
+  /** Form only — one input per entry, resolved as a name/value map. */
+  fields?: ModalField[];
   confirmLabel?: string;
   cancelLabel?: string;
   /** Styles the confirm action as destructive. */
@@ -16,7 +29,7 @@ export interface ModalRequest {
 }
 
 interface OpenModal extends ModalRequest {
-  resolve: (result: boolean | string | null) => void;
+  resolve: (result: ModalResult) => void;
 }
 
 /**
@@ -46,8 +59,13 @@ export class ModalService {
     return this.open({ ...request, kind: 'alert' }) as Promise<void>;
   }
 
+  /** Several inputs at once. Resolves to a name/value map, or null if dismissed. */
+  form(request: Omit<ModalRequest, 'kind'>): Promise<Record<string, string> | null> {
+    return this.open({ ...request, kind: 'form' }) as Promise<Record<string, string> | null>;
+  }
+
   /** Called by the host component when the reader answers. */
-  settle(result: boolean | string | null): void {
+  settle(result: ModalResult): void {
     const open = this.current();
     if (!open) return;
 

@@ -23,9 +23,32 @@ export class ContentService {
     return this.http.get<Work>(`${this.base}/works/${section}/${slug}`);
   }
 
-  /** The reader points pdf.js at this URL; the bytes come straight from MongoDB. */
-  pdfUrl(section: Section, slug: string): string {
-    return `${this.base}/works/${section}/${slug}/pdf`;
+  /**
+   * Fetches the PDF through HttpClient rather than letting pdf.js request the URL
+   * itself. The viewer's own XHR carries no Authorization header, so an unpublished
+   * draft would 404 for the author who is looking right at it. Going through the
+   * interceptor also means the reader keeps working when the bytes later move behind
+   * a redirect to object storage.
+   */
+  /**
+   * Asks where the document lives. A URL means object storage — hand it straight to
+   * pdf.js so it can range-request the file. Null means the bytes are in MongoDB and
+   * must be fetched through the API.
+   */
+  pdfLink(section: Section, slug: string): Observable<{ url: string | null }> {
+    return this.http.get<{ url: string | null }>(
+      `${this.base}/works/${section}/${slug}/pdf-link`,
+    );
+  }
+
+  loadPdf(section: Section, slug: string): Observable<Blob> {
+    return this.http.get(`${this.base}/works/${section}/${slug}/pdf`, {
+      responseType: 'blob',
+    });
+  }
+
+  removePdf(id: string): Observable<Work> {
+    return this.http.delete<Work>(`${this.base}/works/${id}/pdf`);
   }
 
   saveWork(id: string, changes: Partial<Work>): Observable<Work> {

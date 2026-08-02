@@ -5,16 +5,16 @@ import { NgxExtendedPdfViewerModule, PageViewModeType } from 'ngx-extended-pdf-v
 import { AuthService } from '../../core/auth.service';
 import { ContentService } from '../../core/content.service';
 import { Section, Work } from '../../core/models';
+import { ModalService } from '../../shared/modal/modal.service';
 
-type Spread = 'single' | 'double';
 
 /**
  * The e-reading surface for Novels, Plays and Novelettes.
  *
  * ngx-extended-pdf-viewer wraps pdf.js; the site supplies the chrome so the reader
- * feels like part of the archive rather than an embedded PDF plugin. Page turning,
- * spread mode and zoom are lifted out into the header bar, and the viewer's own
- * toolbar is hidden.
+ * feels like part of the archive rather than an embedded PDF plugin. Page turning and
+ * page fitting are lifted out into the header bar, and the viewer's own toolbar is
+ * hidden.
  */
 @Component({
   selector: 'app-reader',
@@ -26,6 +26,7 @@ export class ReaderComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly content = inject(ContentService);
+  private readonly modal = inject(ModalService);
   protected readonly auth = inject(AuthService);
 
   protected readonly work = signal<Work | null>(null);
@@ -34,19 +35,25 @@ export class ReaderComponent {
 
   protected readonly page = signal(1);
   protected readonly totalPages = signal(0);
-  protected readonly spread = signal<Spread>('single');
-  protected readonly zoom = signal<number | 'page-fit' | 'page-width'>('page-fit');
+
+  /**
+   * Two fitting modes and nothing else. Percentage steps were removed: they fought
+   * the fixed-height sheet, and a reader wants the page to fit, not a zoom level.
+   */
+  protected readonly zoom = signal<'page-fit' | 'page-width'>('page-fit');
   protected readonly uploading = signal(false);
   protected readonly uploadError = signal<string | null>(null);
 
-  protected readonly src = computed(() => {
-    const work = this.work();
-    return work?.pdf.hasFile ? this.content.pdfUrl(work.section, work.slug) : null;
-  });
+  /**
+   * The document bytes, fetched through the authenticated client and handed to the
+   * viewer directly. Null until they arrive, or when there is no file.
+   */
+  protected readonly src = signal<Blob | string | null>(null);
+  protected readonly loadingPdf = signal(false);
+  protected readonly pdfError = signal<string | null>(null);
 
-  protected readonly pageViewMode = computed<PageViewModeType>(() =>
-    this.spread() === 'double' ? 'book' : 'single',
-  );
+  /** Single page always — the two-page spread was removed. */
+  protected readonly pageViewMode: PageViewModeType = 'single';
 
   protected readonly progress = computed(() => {
     const total = this.totalPages();
@@ -70,6 +77,7 @@ export class ReaderComponent {
           this.totalPages.set(work.pdf.pageCount ?? 0);
           this.page.set(1);
           this.loading.set(false);
+          this.loadPdf(work);
         },
         error: () => {
           this.notFound.set(true);
@@ -96,26 +104,16 @@ export class ReaderComponent {
   }
 
   protected turn(direction: 1 | -1): void {
-    const step = this.spread() === 'double' ? 2 : 1;
     const total = this.totalPages() || 1;
-    this.page.set(Math.min(Math.max(1, this.page() + direction * step), total));
+    this.page.set(Math.min(Math.max(1, this.page() + direction), total));
   }
 
-  protected toggleSpread(): void {
-    this.spread.update((mode) => (mode === 'single' ? 'double' : 'single'));
-  }
-
-  protected cycleZoom(): void {
-    const order: (number | 'page-fit' | 'page-width')[] = ['page-fit', 'page-width', 1.25, 1.5];
-    const index = order.indexOf(this.zoom());
-    this.zoom.set(order[(index + 1) % order.length]);
+  protected toggleZoom(): void {
+    this.zoom.update((mode) => (mode === 'page-fit' ? 'page-width' : 'page-fit'));
   }
 
   protected zoomLabel(): string {
-    const zoom = this.zoom();
-    if (zoom === 'page-fit') return 'Fit page';
-    if (zoom === 'page-width') return 'Fit width';
-    return `${Math.round(zoom * 100)}%`;
+    return this.zoom() === 'page-fit' ? 'Fit page' : 'Fit width';
   }
 
   /** pdf.js is the authority on page count once the file has actually parsed. */
@@ -126,6 +124,66 @@ export class ReaderComponent {
   /** pdf.js reports `undefined` while a document is still being swapped in. */
   protected onPageChange(page: number | undefined): void {
     if (typeof page === 'number' && page > 0) this.page.set(page);
+  }
+
+  private loadPdf(work: Work): void {
+    this.src.set(null);
+    this.pdfError.set(null);
+    if (!work.pdf.hasFile) return;
+
+    this.loadingPdf.set(true);
+
+    this.content.pdfLink(work.section, work.slug).subscribe({
+      next: ({ url }) => {
+        if (url) {
+          // In object storage: pdf.js fetches it directly and can request byte
+          // ranges, so the first page appears without the whole file arriving.
+          this.src.set(url);
+          this.loadingPdf.set(false);
+          return;
+        }
+
+        // In MongoDB: pull the bytes through the API, which carries the session.
+        this.content.loadPdf(work.section, work.slug).subscribe({
+          next: (blob) => {
+            this.src.set(blob);
+            this.loadingPdf.set(false);
+          },
+          error: () => {
+            this.pdfError.set('That file could not be opened.');
+            this.loadingPdf.set(false);
+          },
+        });
+      },
+      error: () => {
+        this.pdfError.set('That file could not be opened.');
+        this.loadingPdf.set(false);
+      },
+    });
+  }
+
+  /** Detaches the file from the work; the shelf entry stays so it can be replaced. */
+  protected async removePdf(): Promise<void> {
+    const work = this.work();
+    if (!work) return;
+
+    const confirmed = await this.modal.confirm({
+      title: 'Remove this PDF?',
+      message: `"${work.title}" stays on the shelf and can be uploaded again. The file itself is deleted.`,
+      confirmLabel: 'Remove',
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    this.content.removePdf(work.id).subscribe({
+      next: (updated) => {
+        this.work.set({ ...work, pdf: updated.pdf });
+        this.src.set(null);
+        this.totalPages.set(0);
+        this.page.set(1);
+      },
+      error: () => this.uploadError.set('That file could not be removed.'),
+    });
   }
 
   protected onFileSelected(event: Event): void {
@@ -139,10 +197,12 @@ export class ReaderComponent {
 
     this.content.uploadPdf(work.id, file).subscribe({
       next: (updated) => {
-        this.work.set({ ...work, pdf: updated.pdf });
+        const next = { ...work, pdf: updated.pdf };
+        this.work.set(next);
         this.totalPages.set(updated.pdf.pageCount ?? 0);
         this.uploading.set(false);
         input.value = '';
+        this.loadPdf(next);
       },
       error: (error) => {
         this.uploadError.set(error?.error?.error ?? 'That upload did not go through.');

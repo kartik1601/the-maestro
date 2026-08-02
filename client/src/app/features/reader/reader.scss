@@ -1,8 +1,35 @@
 .reader {
   display: flex;
   flex-direction: column;
-  /* Fills the viewport below the masthead so the page itself never scrolls. */
-  min-height: calc(100dvh - var(--header-height) - var(--space-7));
+}
+
+/* ── The viewer's own chrome ───────────────────────────────────────────────── */
+
+/**
+ * ngx-extended-pdf-viewer renders pdf.js's markup, which is not scoped to this
+ * component — these rules have to be global to reach it. Its default is a full-bleed
+ * app with its own grey chrome; here it is a page on a sheet, so the surrounding
+ * furniture is removed and only the rendered page is kept.
+ */
+::ng-deep .reader__paper {
+  ngx-extended-pdf-viewer,
+  .zoom,
+  #mainContainer,
+  #viewerContainer {
+    height: 100%;
+  }
+
+  #viewerContainer {
+    inset: 0;
+    background: var(--surface-sunken);
+  }
+
+  /* Centre the page in the sheet at any zoom. */
+  .pdfViewer .page {
+    margin-inline: auto;
+    border: none;
+    box-shadow: var(--shadow-md);
+  }
 }
 
 /* ── Bar ───────────────────────────────────────────────────────────────────── */
@@ -60,29 +87,39 @@
 
 /* ── Stage ─────────────────────────────────────────────────────────────────── */
 
+/**
+ * Constrained to the site's own column rather than the viewport. A reader that runs
+ * edge to edge while every other page stops at 72rem reads as a different website.
+ */
 .reader__stage {
   position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-3);
-  flex: 1;
-  min-height: 60vh;
-  padding: var(--space-5) var(--space-4);
-  background: var(--surface-sunken);
+  margin-block-start: var(--space-4);
+  padding: var(--space-4) 0;
 }
 
 /**
  * The page itself is a sheet lifted off the surface — the single strongest cue
- * that this is reading rather than browsing.
+ * that this is reading rather than browsing. A fixed viewport-relative height keeps
+ * it stable when the zoom or spread changes, instead of the container resizing and
+ * the viewer re-laying out against a moving target.
  */
 .reader__paper {
-  flex: 1;
-  height: 100%;
-  min-height: 60vh;
+  height: min(78vh, 60rem);
   border-radius: var(--radius-md);
   background: var(--surface-raised);
-  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
+}
+
+.reader__loading {
+  padding-block: var(--space-9);
+  text-align: center;
+  color: var(--text-muted);
 }
 
 .page-turn {

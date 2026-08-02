@@ -4,6 +4,7 @@ import multer from 'multer';
 import { env } from '../config/env.js';
 import { Media } from '../models/media.js';
 import { requireAdmin } from '../middleware/auth.js';
+import { buildKey, isConfigured, putObject, resolveUrl } from '../storage/blob-store.js';
 
 const ALLOWED = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/avif']);
 
@@ -30,6 +31,14 @@ export function mediaRouter() {
     try {
       const media = await Media.findById(req.params.id);
       if (!media) return res.status(404).json({ error: 'Not found' });
+
+      // Images in the bucket are always public — they only ever appear inside
+      // published prose, and the CDN should be the one serving them.
+      if (media.storage === 'r2' && media.objectKey) {
+        return res.redirect(302, await resolveUrl(media.objectKey, { public: true }));
+      }
+
+      if (!media.data) return res.status(404).json({ error: 'Not found' });
 
       res.set({
         'Content-Type': media.contentType,
@@ -58,11 +67,15 @@ export function mediaRouter() {
         return res.status(400).json({ error: 'Invalid media key.' });
       }
 
+      // Keyed media stays in MongoDB on purpose — the portrait is one small file, and
+      // keeping it in the database means the About page never depends on the bucket.
       const media = await Media.findOneAndUpdate(
         { key },
         {
           $set: {
             key,
+            storage: 'mongo',
+            objectKey: null,
             data: req.file.buffer,
             contentType: req.file.mimetype,
             byteSize: req.file.size,
@@ -90,8 +103,22 @@ export function mediaRouter() {
     try {
       if (!req.file) return res.status(400).json({ error: 'No image received.' });
 
+      // Prose images go to the bucket when it is available; the portrait does not
+      // take this path — it is keyed, and keyed uploads stay in MongoDB.
+      const placement = isConfigured()
+        ? {
+            storage: 'r2',
+            objectKey: await putObject({
+              key: buildKey('image', req.file.originalname),
+              body: req.file.buffer,
+              contentType: req.file.mimetype,
+            }),
+            data: null,
+          }
+        : { storage: 'mongo', objectKey: null, data: req.file.buffer };
+
       const media = await Media.create({
-        data: req.file.buffer,
+        ...placement,
         contentType: req.file.mimetype,
         byteSize: req.file.size,
         originalName: req.file.originalname,

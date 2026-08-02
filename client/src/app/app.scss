@@ -41,6 +41,7 @@
 }
 
 .masthead__inner {
+  position: relative;
   display: flex;
   align-items: stretch;
   gap: var(--space-5);
@@ -52,6 +53,22 @@
   align-self: center;
 }
 
+/**
+ * Two things side by side, split by a rule: the element, and the name.
+ *
+ * Hovering the *element* opens the reaction — the name then drops beneath it and the
+ * divider turns from a vertical bar into the horizontal rule between them. Hovering
+ * the name does nothing, which is why every rule below keys off
+ * `:has(.brand__element:hover)` rather than `.brand:hover`.
+ */
+/**
+ * The element, a vertical rule, and the name — one row.
+ *
+ * Hovering the element opens the reaction rightward, and the rule and the name get
+ * out of its way: both collapse to nothing so the equation has the space, rather than
+ * being pushed along in front of it. Hovering the name does nothing, which is why the
+ * rules key off `.brand__element:hover` rather than `.brand:hover`.
+ */
 .brand {
   display: inline-flex;
   align-items: center;
@@ -61,24 +78,204 @@
   margin-inline-end: auto;
 }
 
-/* A small tan square — one of the few places an accent colour appears at all. */
-.brand__mark {
-  width: 0.9rem;
-  height: 0.9rem;
-  flex: none;
-  border-radius: var(--radius-sm);
-  background: var(--accent-warm);
-  transition: transform var(--duration-base) var(--ease-out);
+.brand__element {
+  display: inline-flex;
+  align-items: center;
 }
 
-.brand:hover .brand__mark {
-  transform: rotate(45deg);
+.brand__divider {
+  flex: none;
+  width: 1px;
+  height: 1.5em;
+  background: var(--border-strong);
+}
+
+/**
+ * The name and the rule leave first, quickly; the reaction then opens into the space
+ * they left, slowly. Sequencing it this way stops the two from fighting over the same
+ * pixels halfway through.
+ */
+.brand__divider,
+.brand__name {
+  overflow: hidden;
+  transition:
+    max-width 260ms var(--ease-out),
+    opacity 200ms var(--ease-out),
+    margin 260ms var(--ease-out);
+}
+
+.brand__element:hover ~ .brand__divider,
+.brand__element:hover ~ .brand__name {
+  max-width: 0;
+  opacity: 0;
+  /* Cancels the flex gap as well, so nothing is left holding a space. */
+  margin-inline-start: calc(var(--space-3) * -1);
+}
+
+/* ── The reaction mark ─────────────────────────────────────────────────────── */
+
+/**
+ * At rest this shows one nuclide. On hover the reactant slides in from the left and
+ * the products unfold to the right, from the very spot the nuclide already occupied —
+ * the cursor arriving is the neutron that starts it.
+ *
+ * The anchor never moves. The two wings are laid out but collapsed to zero width, so
+ * revealing them costs no reflow of anything around the brand.
+ */
+.reaction {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: 0.35em;
+  font-family: var(--font-serif);
+
+  /* A shade larger than the wordmark beside it. */
+  font-size: calc(var(--text-xl) * 1.15);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* One of the four palette hues — tan in daylight, beige at night. --mark-ink is
+   defined in the global token sheet; a :root rule here would be scoped and never
+   match the document root. */
+.reaction__anchor {
+  color: var(--mark-ink);
+  transition: color var(--duration-base) var(--ease-out);
+}
+
+.reaction__in,
+.reaction__out {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  font-size: 0.62em;
+
+  /* Collapsed at rest: no width, nothing painted, no space taken. */
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+
+  /* Closing again is quick — only the opening is drawn out. */
+  transition:
+    max-width 200ms var(--ease-out),
+    opacity 150ms var(--ease-out),
+    transform 200ms var(--ease-out);
+}
+
+/* Each wing emerges from the anchor rather than sliding in from off-screen. */
+.reaction__in {
+  transform: translateX(1.5em);
+}
+
+.reaction__out {
+  transform: translateX(-1.5em);
+}
+
+/**
+ * Waits for the name to clear (260ms) before starting, then unfolds over 900ms —
+ * slow enough to read as a reaction propagating rather than a panel appearing.
+ */
+.brand__element:hover {
+  .reaction__in,
+  .reaction__out {
+    max-width: 40rem;
+    opacity: 1;
+    transform: none;
+    transition:
+      max-width 900ms var(--ease-out) 260ms,
+      opacity 600ms var(--ease-out) 260ms,
+      transform 900ms var(--ease-out) 260ms;
+  }
+}
+
+
+/* ── Nuclides ──────────────────────────────────────────────────────────────── */
+
+/**
+ * Three explicit grid items — mass, atomic number, symbol. Every part is wrapped
+ * rather than left as a bare text node, because an anonymous grid item cannot be
+ * placed and drifts into whichever cell is free.
+ */
+.nuc {
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  column-gap: 0.06em;
+  font-weight: 600;
+}
+
+.nuc__a,
+.nuc__z {
+  grid-column: 1;
+  font-size: 0.5em;
+  line-height: 1.05;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.nuc__a {
+  grid-row: 1;
+}
+
+.nuc__z {
+  grid-row: 2;
+}
+
+.nuc__sym {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.nuc__star {
+  font-size: 0.7em;
+}
+
+/* The stray "3" in front of the three emitted neutrons. */
+.reaction__count {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  margin-inline-end: 0.15em;
+  font-size: 1em;
+}
+
+/**
+ * Colour is drawn only from the four hues the site is allowed: cool blue for the
+ * neutrons that carry the reaction, tan for the uranium, sage for what it becomes.
+ */
+.nuc--neutron {
+  color: var(--accent);
+}
+
+.nuc--fuel {
+  color: var(--mark-ink);
+}
+
+.nuc--excited {
+  color: var(--accent-warm);
+}
+
+.nuc--product {
+  color: var(--accent-calm);
+}
+
+.reaction__op,
+.reaction__arrow {
+  color: var(--text-muted);
+}
+
+.reaction__energy {
+  font-weight: 600;
+  font-style: italic;
+  color: var(--accent-warm);
 }
 
 .brand__name {
+  flex: none;
+  max-width: 20rem;
   font-family: var(--font-serif);
   font-size: var(--text-xl);
   letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 
 .nav {

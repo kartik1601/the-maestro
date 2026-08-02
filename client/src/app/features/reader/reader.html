@@ -22,18 +22,21 @@
 
       @if (src()) {
         <div class="reader__controls">
-          <button class="btn btn--quiet" type="button" (click)="cycleZoom()">
+          <button class="btn btn--quiet" type="button" (click)="toggleZoom()">
             {{ zoomLabel() }}
-          </button>
-          <button class="btn btn--quiet" type="button" (click)="toggleSpread()">
-            {{ spread() === 'double' ? 'Two pages' : 'One page' }}
           </button>
         </div>
       }
     </header>
 
-    @if (src(); as source) {
-      <div class="reader__stage">
+    @if (loadingPdf()) {
+      <div class="shell reader__loading">Opening…</div>
+    } @else if (pdfError()) {
+      <div class="shell awaiting">
+        <p class="notice notice--warn">{{ pdfError() }}</p>
+      </div>
+    } @else if (src(); as source) {
+      <div class="reader__stage shell">
         <button
           class="page-turn page-turn--prev"
           type="button"
@@ -49,7 +52,7 @@
             [src]="source"
             [page]="page()"
             [zoom]="zoom()"
-            [pageViewMode]="pageViewMode()"
+            [pageViewMode]="pageViewMode"
             [showToolbar]="false"
             [showBorders]="false"
             [textLayer]="true"
@@ -70,7 +73,7 @@
         </button>
       </div>
 
-      <footer class="reader__foot">
+      <footer class="reader__foot shell">
         <div class="reader__progress" role="progressbar" [attr.aria-valuenow]="progress()">
           <span class="reader__progress-fill" [style.inline-size.%]="progress()"></span>
         </div>
@@ -103,6 +106,10 @@
             {{ uploading() ? 'Uploading…' : work.pdf.hasFile ? 'Replace PDF' : 'Upload PDF' }}
           </span>
         </label>
+
+        @if (work.pdf.hasFile) {
+          <button class="btn btn--quiet" type="button" (click)="removePdf()">Remove PDF</button>
+        }
 
         <button class="btn btn--quiet" type="button" (click)="togglePublished()">
           {{ work.published ? 'Published — unpublish' : 'Draft — publish' }}

@@ -14,6 +14,25 @@
         <p class="panel__message">{{ open.message }}</p>
       }
 
+      @if (open.kind === 'form') {
+        <div class="panel__fields">
+          @for (field of open.fields ?? []; track field.name; let first = $first) {
+            <label class="field">
+              <span class="field__label">{{ field.label }}</span>
+              <input
+                class="input"
+                [attr.type]="field.type ?? 'text'"
+                [attr.min]="field.min ?? null"
+                [attr.max]="field.max ?? null"
+                [value]="fieldValues()[field.name] ?? ''"
+                (input)="setField(field.name, $any($event.target).value)"
+                (keydown.enter)="accept()"
+              />
+            </label>
+          }
+        </div>
+      }
+
       @if (open.kind === 'prompt') {
         <input
           class="input"

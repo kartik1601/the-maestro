@@ -67,6 +67,33 @@ export class RichEditorComponent {
   /** Bumped on every transaction so the toolbar's active states re-render. */
   protected readonly revision = signal(0);
 
+  /**
+   * True while the cursor sits inside a table, which reveals the table controls.
+   *
+   * Set straight from the editor rather than derived from `revision`: a computed
+   * caches on its signal dependencies, and `editor.isActive()` is not one of them, so
+   * the value only refreshed when something else happened to bump the counter. That
+   * made the toolbar appear on insert and never come back when a cell was clicked.
+   */
+  protected readonly inTable = signal(false);
+
+  /**
+   * Table editing, shown only in context. Kept off the main toolbar because these
+   * are meaningless anywhere else and would double its width.
+   */
+  protected readonly tableTools: Tool[] = [
+    { id: 'addRowBefore', label: 'Insert row above', glyph: '⤒', kind: 'action', run: (e) => e.chain().focus().addRowBefore().run() },
+    { id: 'addRowAfter', label: 'Insert row below', glyph: '⤓', kind: 'action', run: (e) => e.chain().focus().addRowAfter().run() },
+    { id: 'deleteRow', label: 'Delete row', glyph: '⊟', kind: 'action', run: (e) => e.chain().focus().deleteRow().run() },
+    { id: 'addColumnBefore', label: 'Insert column left', glyph: '⇤', kind: 'action', run: (e) => e.chain().focus().addColumnBefore().run() },
+    { id: 'addColumnAfter', label: 'Insert column right', glyph: '⇥', kind: 'action', run: (e) => e.chain().focus().addColumnAfter().run() },
+    { id: 'deleteColumn', label: 'Delete column', glyph: '⊠', kind: 'action', run: (e) => e.chain().focus().deleteColumn().run() },
+    { id: 'toggleHeaderRow', label: 'Toggle header row', glyph: 'H↔', kind: 'action', run: (e) => e.chain().focus().toggleHeaderRow().run() },
+    { id: 'toggleHeaderColumn', label: 'Toggle header column', glyph: 'H↕', kind: 'action', run: (e) => e.chain().focus().toggleHeaderColumn().run() },
+    { id: 'mergeOrSplit', label: 'Merge or split cells', glyph: '⧉', kind: 'action', run: (e) => e.chain().focus().mergeOrSplit().run() },
+    { id: 'deleteTable', label: 'Delete table', glyph: '🗑', kind: 'action', run: (e) => this.confirmDeleteTable(e) },
+  ];
+
   protected readonly tools: Tool[][] = [
     [
       { id: 'bold', label: 'Bold', glyph: 'B', kind: 'mark', run: (e) => e.chain().focus().toggleBold().run() },
@@ -98,7 +125,7 @@ export class RichEditorComponent {
       { id: 'upload', label: 'Upload an image', glyph: '▣', kind: 'action', run: () => this.pickFile() },
       { id: 'image', label: 'Image by address', glyph: '▤', kind: 'action', run: (e) => this.promptForImage(e) },
       { id: 'youtube', label: 'YouTube video', glyph: '▶', kind: 'action', run: () => this.promptForVideo() },
-      { id: 'table', label: 'Table', glyph: '▦', kind: 'action', run: (e) => e.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
+      { id: 'table', label: 'Insert a table', glyph: '▦', kind: 'action', run: () => this.promptForTable() },
       { id: 'horizontalRule', label: 'Divider', glyph: '—', kind: 'action', run: (e) => e.chain().focus().setHorizontalRule().run() },
     ],
     [
@@ -161,11 +188,17 @@ export class RichEditorComponent {
         Placeholder.configure({ placeholder: () => this.placeholder() }),
       ],
       content: this.value(),
-      onUpdate: ({ editor }) => {
+
+      onUpdate: ({ editor }) => this.valueChange.emit(editor.getHTML()),
+
+      /**
+       * Fires for every state change — typing, clicking, selecting — which is the
+       * only hook that reliably covers moving the caret into a table cell.
+       */
+      onTransaction: ({ editor }) => {
         this.revision.update((n) => n + 1);
-        this.valueChange.emit(editor.getHTML());
+        this.inTable.set(editor.isActive('table'));
       },
-      onSelectionUpdate: () => this.revision.update((n) => n + 1),
     });
 
     return editor;
@@ -201,6 +234,38 @@ export class RichEditorComponent {
     });
 
     if (src?.trim()) editor.chain().focus().setImage({ src: src.trim() }).run();
+  }
+
+  /** Asks for the size first rather than dropping a fixed 3×3 grid on the page. */
+  private async promptForTable(): Promise<void> {
+    const size = await this.modal.form({
+      title: 'Insert a table',
+      message: 'How big should it be? A header row is added automatically.',
+      fields: [
+        { name: 'rows', label: 'Rows', type: 'number', value: '3', min: 1, max: 50 },
+        { name: 'cols', label: 'Columns', type: 'number', value: '3', min: 1, max: 20 },
+      ],
+      confirmLabel: 'Insert',
+    });
+    if (!size) return;
+
+    const clamp = (value: number, min: number, max: number) =>
+      Number.isFinite(value) ? Math.min(Math.max(Math.round(value), min), max) : min;
+
+    const rows = clamp(Number(size['rows']), 1, 50);
+    const cols = clamp(Number(size['cols']), 1, 20);
+
+    this.editor?.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run();
+  }
+
+  private async confirmDeleteTable(editor: Editor): Promise<void> {
+    const confirmed = await this.modal.confirm({
+      title: 'Delete this table?',
+      message: 'The table and everything in it is removed.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (confirmed) editor.chain().focus().deleteTable().run();
   }
 
   /**
@@ -287,10 +352,49 @@ export class RichEditorComponent {
       entry.type.startsWith('image/'),
     );
     const file = item?.getAsFile();
-    if (!file) return;
+    if (file) {
+      event.preventDefault();
+      this.uploadDirect(file);
+      return;
+    }
+
+    this.pasteTable(event);
+  }
+
+  /**
+   * Word and Excel both put real HTML on the clipboard, which ProseMirror parses into
+   * a table on its own. Some sources — including Excel in certain paste paths, and
+   * plain-text editors — offer only tab-separated text, which would otherwise land as
+   * a single run of characters. This turns that case into a table too.
+   */
+  private pasteTable(event: ClipboardEvent): void {
+    const html = event.clipboardData?.getData('text/html') ?? '';
+    if (/<table/i.test(html)) return; // ProseMirror handles it.
+
+    const text = event.clipboardData?.getData('text/plain') ?? '';
+    const rows = text.replace(/\r\n?/g, '\n').replace(/\n$/, '').split('\n');
+
+    // Needs at least two columns and two rows to be a table rather than prose.
+    const grid = rows.map((row) => row.split('\t'));
+    const columns = grid[0]?.length ?? 0;
+    const looksTabular =
+      grid.length > 1 && columns > 1 && grid.every((row) => row.length === columns);
+
+    if (!looksTabular || !this.editor) return;
 
     event.preventDefault();
-    this.uploadDirect(file);
+
+    const escapeCell = (value: string) =>
+      value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    const [head, ...body] = grid;
+    const html5 =
+      '<table><tbody>' +
+      `<tr>${head.map((c) => `<th>${escapeCell(c)}</th>`).join('')}</tr>` +
+      body.map((row) => `<tr>${row.map((c) => `<td>${escapeCell(c)}</td>`).join('')}</tr>`).join('') +
+      '</tbody></table>';
+
+    this.editor.chain().focus().insertContent(html5).run();
   }
 
   private uploadDirect(file: File): void {

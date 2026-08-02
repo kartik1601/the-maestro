@@ -9,7 +9,15 @@ import mongoose from 'mongoose';
  */
 const mediaSchema = new mongoose.Schema(
   {
-    data: { type: Buffer, required: true },
+    /**
+     * Where the bytes live. Prose images go to R2 when it is configured; the author's
+     * portrait deliberately stays in MongoDB, so the About page keeps working even if
+     * the bucket is unreachable.
+     */
+    storage: { type: String, enum: ['mongo', 'r2'], default: 'mongo' },
+    objectKey: { type: String, default: null },
+
+    data: { type: Buffer, default: null },
     contentType: { type: String, required: true },
     byteSize: { type: Number, required: true },
     originalName: { type: String, default: null },

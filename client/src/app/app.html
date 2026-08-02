@@ -2,8 +2,64 @@
 
 <header class="masthead" [class.masthead--scrolled]="scrolled()">
   <div class="masthead__inner shell">
+    <!--
+      At rest only the nuclide shows. Hovering brings a neutron in from the left and
+      the reaction unfolds outward from that same spot — the cursor is the neutron.
+      The wordmark fades as the products take its place.
+    -->
     <a class="brand" routerLink="/" aria-label="the maestro — home">
-      <span class="brand__mark" aria-hidden="true"></span>
+      <!--
+        The isotope at rest; the whole fission chain on hover. Built from <sup> and
+        <sub> rather than a maths renderer — it is six symbols, and pulling in KaTeX
+        to set them would cost more than the entire rest of the page.
+      -->
+      <span class="brand__element">
+      <span class="reaction" aria-hidden="true">
+        <!-- Arrives on hover, from the left. -->
+        <span class="reaction__in">
+          <span class="nuc nuc--neutron">
+            <span class="nuc__a">1</span><span class="nuc__z">0</span><span class="nuc__sym">n</span>
+          </span>
+          <span class="reaction__op">+</span>
+        </span>
+
+        <!-- The one part that is always visible, and never moves. -->
+        <span class="nuc nuc--fuel reaction__anchor">
+          <span class="nuc__a">235</span><span class="nuc__z">92</span
+          ><span class="nuc__sym">U</span>
+        </span>
+
+        <!-- Unfolds to the right. -->
+        <span class="reaction__out">
+          <span class="reaction__arrow">→</span>
+          <span class="nuc nuc--excited">
+            <span class="nuc__a">236</span><span class="nuc__z">92</span
+            ><span class="nuc__sym">U<sup class="nuc__star">*</sup></span>
+          </span>
+          <span class="reaction__arrow">→</span>
+          <span class="nuc nuc--product">
+            <span class="nuc__a">141</span><span class="nuc__z">56</span
+            ><span class="nuc__sym">Ba</span>
+          </span>
+          <span class="reaction__op">+</span>
+          <span class="nuc nuc--product">
+            <span class="nuc__a">92</span><span class="nuc__z">36</span
+            ><span class="nuc__sym">Kr</span>
+          </span>
+          <span class="reaction__op">+</span>
+          <span class="nuc nuc--neutron">
+            <span class="reaction__count">3</span><span class="nuc__a">1</span
+            ><span class="nuc__z">0</span><span class="nuc__sym">n</span>
+          </span>
+          <span class="reaction__op">+</span>
+          <span class="reaction__energy">Energy</span>
+        </span>
+      </span>
+      </span>
+
+      <!-- Both this and the name collapse away while the reaction is open. -->
+      <span class="brand__divider" aria-hidden="true"></span>
+
       <span class="brand__name">the maestro</span>
     </a>
 

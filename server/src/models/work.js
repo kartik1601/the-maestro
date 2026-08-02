@@ -43,8 +43,16 @@ const workSchema = new mongoose.Schema(
     body: { type: String, default: '' },
     excerpt: { type: String, default: '' },
 
-    /** kind: 'upload' — PDF bytes stored inline per spec. */
+    /**
+     * kind: 'upload' — the document itself.
+     *
+     * `storage` records where the bytes actually live. R2 when it is configured,
+     * otherwise inline in `data` as before. Both are supported at once so existing
+     * uploads keep working after R2 is switched on; nothing needs migrating.
+     */
     pdf: {
+      storage: { type: String, enum: ['mongo', 'r2'], default: 'mongo' },
+      objectKey: { type: String, default: null },
       data: { type: Buffer, default: null },
       contentType: { type: String, default: null },
       byteSize: { type: Number, default: 0 },

@@ -73,6 +73,27 @@ export const env = {
     authKey: process.env.ADMIN_AUTH_KEY ?? '',
   },
 
+  /**
+   * Cloudflare R2. Leave any of these empty and uploads fall back to storing bytes
+   * inside MongoDB, which keeps a fresh clone working with no account anywhere.
+   * See .claude/API_KEYS.md for how to obtain each value.
+   */
+  r2: {
+    accountId: process.env.R2_ACCOUNT_ID ?? '',
+    accessKeyId: process.env.R2_ACCESS_KEY_ID ?? '',
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? '',
+    bucket: process.env.R2_BUCKET ?? '',
+
+    /**
+     * A public hostname for the bucket — an r2.dev subdomain or a custom domain.
+     * Optional: without it every object is served through a signed URL instead,
+     * which works but bypasses CDN caching.
+     */
+    publicBaseUrl: process.env.R2_PUBLIC_BASE_URL ?? '',
+
+    signedUrlTtl: int(process.env.R2_SIGNED_URL_TTL, 60 * 60),
+  },
+
   uploads: {
     // MongoDB caps a single BSON document at 16 MB; Buffer-in-document storage
     // must stay clear of that ceiling. See .claude/MEMORY.md for the GridFS path.

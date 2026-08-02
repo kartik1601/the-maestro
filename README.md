@@ -38,9 +38,36 @@ JWT_REFRESH_TTL=7d
 ADMIN_PORTAL_PATH=           # required in production — the private URL segment the login sits under
 
 CLIENT_ORIGIN=http://localhost:4200
-MAX_PDF_BYTES=15728640       # must stay under MongoDB's 16 MB document limit
+MAX_PDF_BYTES=15728640       # only applies to the MongoDB fallback (16 MB document limit)
 MAX_IMAGE_BYTES=8388608
+
+R2_ACCOUNT_ID=               # optional — see Storage below
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET=
+R2_PUBLIC_BASE_URL=          # optional, enables CDN delivery
 ```
+
+### Storage
+
+Uploaded PDFs and images pasted into prose go to **Cloudflare R2** when it is
+configured, and to MongoDB when it is not — so a fresh clone runs with no account
+anywhere. The author's portrait always stays in MongoDB, so the About page never
+depends on the bucket being reachable.
+
+Where each value comes from, in the Cloudflare dashboard:
+
+| Variable | Where |
+|---|---|
+| `R2_ACCOUNT_ID` | R2 → Overview, the Account ID in the sidebar |
+| `R2_ACCESS_KEY_ID` · `R2_SECRET_ACCESS_KEY` | R2 → Manage API Tokens → create a token with **Object Read & Write** |
+| `R2_BUCKET` | the bucket's name |
+| `R2_PUBLIC_BASE_URL` | the bucket's Settings → Public access, either the `r2.dev` subdomain or a custom domain |
+
+Published files are served from the public URL so the CDN caches them and readers get
+byte ranges — which is what lets a novel show its first page before the whole file has
+arrived. Drafts are served through short-lived signed links instead, so unpublished
+work stays unreadable without a session.
 
 Generate a secret with:
 
@@ -130,6 +157,28 @@ npm run admin:create   # provision the author, interactively (production)
 
 ## Status
 
-v1.3.0 — fourth review round applied, running against MongoDB Atlas, not yet deployed.
+v1.3.2 — sixth review round applied, running against MongoDB Atlas, not yet deployed.
 Review notes are tracked in `.claude/SESSION_PROMPTS.md`; known gaps are listed at the
 end of `.claude/MEMORY.md`. Both are local-only — see Layout above.
+
+### Bucket setup
+
+Beyond the credentials, the bucket itself needs a CORS policy — the browser fetches
+files from R2 directly, so without it every request is blocked. In the Cloudflare
+dashboard: **R2 → your bucket → Settings → CORS policy**.
+
+```json
+[
+  {
+    "AllowedOrigins": ["http://localhost:4200", "https://your-domain.example"],
+    "AllowedMethods": ["GET", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["Content-Length", "Content-Range", "Accept-Ranges", "ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+`ExposeHeaders` matters: without `Content-Range` and `Accept-Ranges` the browser
+cannot see that R2 supports byte ranges, and pdf.js falls back to downloading the
+whole file — losing the main reason for moving storage out of the database.

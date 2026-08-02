@@ -5,6 +5,7 @@ import { SECTIONS, Work, WORK_LIST_PROJECTION } from '../models/work.js';
 import { attachAdmin, requireAdmin } from '../middleware/auth.js';
 import { excerptFrom, readingMinutes, sanitizeRichText } from '../lib/sanitize.js';
 import { slugify } from '../lib/slugify.js';
+import { buildKey, deleteObject, isConfigured, putObject, resolveUrl } from '../storage/blob-store.js';
 
 /**
  * PDFs are held in memory only long enough to copy them into the document, per the
@@ -59,11 +60,50 @@ export function worksRouter() {
     }
   });
 
-  /** Streams the stored bytes back for the reader. */
+  /**
+   * Where the document actually lives.
+   *
+   * The client asks this first and, when it gets a URL back, points pdf.js straight
+   * at it. That is deliberate rather than redirecting from the endpoint below: the
+   * client's requests carry an Authorization header, which makes them preflighted,
+   * and CORS forbids following a redirect on a preflighted request. Handing over a
+   * URL sidesteps that entirely — and lets pdf.js issue its own range requests, which
+   * is the reason for using object storage in the first place.
+   *
+   * The visibility check still happens here, so no URL is minted for a draft without
+   * a session.
+   */
+  router.get('/:section/:slug/pdf-link', attachAdmin, async (req, res, next) => {
+    try {
+      const work = await findVisibleWork(req);
+      if (!work?.pdf?.byteSize) return res.status(404).json({ error: 'No PDF for this work' });
+
+      if (work.pdf.storage === 'r2' && work.pdf.objectKey) {
+        return res.json({ url: await resolveUrl(work.pdf.objectKey, { public: work.published }) });
+      }
+
+      // Stored in MongoDB: no URL to hand out, the client fetches the bytes instead.
+      res.json({ url: null });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  /**
+   * Streams the bytes for documents held in MongoDB. Still redirects for R2-backed
+   * files so a direct link or a curl keeps working, but the client uses pdf-link.
+   */
   router.get('/:section/:slug/pdf', attachAdmin, async (req, res, next) => {
     try {
       const work = await findVisibleWork(req, { includePdf: true });
-      if (!work?.pdf?.data) return res.status(404).json({ error: 'No PDF for this work' });
+      if (!work?.pdf?.byteSize) return res.status(404).json({ error: 'No PDF for this work' });
+
+      if (work.pdf.storage === 'r2' && work.pdf.objectKey) {
+        const url = await resolveUrl(work.pdf.objectKey, { public: work.published });
+        return res.redirect(302, url);
+      }
+
+      if (!work.pdf.data) return res.status(404).json({ error: 'No PDF for this work' });
 
       res.set({
         'Content-Type': work.pdf.contentType ?? 'application/pdf',
@@ -121,22 +161,66 @@ export function worksRouter() {
     try {
       if (!req.file) return res.status(400).json({ error: 'No PDF received.' });
 
+      const previous = await Work.findById(req.params.id).select('pdf.objectKey pdf.storage');
+      if (!previous) return res.status(404).json({ error: 'Work not found' });
+
+      const pdf = {
+        contentType: req.file.mimetype,
+        byteSize: req.file.size,
+        pageCount: countPdfPages(req.file.buffer),
+        originalName: req.file.originalname,
+        uploadedAt: new Date(),
+      };
+
+      if (isConfigured()) {
+        const objectKey = buildKey('pdf', req.file.originalname);
+        await putObject({ key: objectKey, body: req.file.buffer, contentType: req.file.mimetype });
+        Object.assign(pdf, { storage: 'r2', objectKey, data: null });
+      } else {
+        Object.assign(pdf, { storage: 'mongo', objectKey: null, data: req.file.buffer });
+      }
+
+      const work = await Work.findByIdAndUpdate(
+        req.params.id,
+        { pdf },
+        { returnDocument: 'after' },
+      ).select(WORK_LIST_PROJECTION);
+
+      // Only once the replacement is safely recorded.
+      if (previous.pdf?.objectKey) await deleteObject(previous.pdf.objectKey);
+
+      res.json(shapeWork(work.toJSON()));
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  /** Removes the file but keeps the work, so the shelf entry survives a re-upload. */
+  router.delete('/:id/pdf', requireAdmin, async (req, res, next) => {
+    try {
+      const previous = await Work.findById(req.params.id).select('pdf.objectKey');
+      if (!previous) return res.status(404).json({ error: 'Work not found' });
+
       const work = await Work.findByIdAndUpdate(
         req.params.id,
         {
-          pdf: {
-            data: req.file.buffer,
-            contentType: req.file.mimetype,
-            byteSize: req.file.size,
-            pageCount: countPdfPages(req.file.buffer),
-            originalName: req.file.originalname,
-            uploadedAt: new Date(),
+          $set: {
+            pdf: {
+              storage: 'mongo',
+              objectKey: null,
+              data: null,
+              contentType: null,
+              byteSize: 0,
+              pageCount: null,
+              originalName: null,
+              uploadedAt: null,
+            },
           },
         },
         { returnDocument: 'after' },
       ).select(WORK_LIST_PROJECTION);
 
-      if (!work) return res.status(404).json({ error: 'Work not found' });
+      await deleteObject(previous.pdf?.objectKey);
       res.json(shapeWork(work.toJSON()));
     } catch (error) {
       next(error);
@@ -147,6 +231,9 @@ export function worksRouter() {
     try {
       const work = await Work.findByIdAndDelete(req.params.id);
       if (!work) return res.status(404).json({ error: 'Work not found' });
+
+      // The document is gone; its file would otherwise sit in the bucket forever.
+      await deleteObject(work.pdf?.objectKey);
       res.status(204).end();
     } catch (error) {
       next(error);

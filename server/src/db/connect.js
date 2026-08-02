@@ -40,7 +40,7 @@ export async function connectDatabase() {
  * depend on winning that race, so transient resolution and selection failures are
  * retried with backoff.
  */
-async function connectWithRetry(uri, attempts = 4) {
+async function connectWithRetry(uri, attempts = 7) {
   const transient = new Set([
     'ESERVFAIL',
     'EAI_AGAIN',
@@ -65,7 +65,9 @@ async function connectWithRetry(uri, attempts = 4) {
 
       if (!retryable || attempt >= attempts) throw error;
 
-      const waitMs = 400 * 2 ** (attempt - 1);
+      // Capped exponential backoff: ~0.5s, 1s, 2s, 4s, 8s, 8s — around 24 seconds of
+      // patience in total. SRV lookups on this network have failed for that long.
+      const waitMs = Math.min(500 * 2 ** (attempt - 1), 8000);
       console.warn(
         `[db] connection attempt ${attempt} failed (${error.code ?? error.name}) — retrying in ${waitMs}ms`,
       );

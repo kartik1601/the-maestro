@@ -26,6 +26,25 @@
     }
   </div>
 
+  <!-- Table controls, shown only while the cursor is inside a table. -->
+  @if (inTable()) {
+    <div class="editor__toolbar editor__toolbar--table" role="toolbar" aria-label="Table">
+      <span class="editor__group-label">Table</span>
+      @for (tool of tableTools; track tool.id) {
+        <button
+          class="tool"
+          type="button"
+          [class.tool--wide]="tool.glyph.length > 1"
+          [attr.aria-label]="tool.label"
+          [title]="tool.label"
+          (click)="run(tool)"
+        >
+          {{ tool.glyph }}
+        </button>
+      }
+    </div>
+  }
+
   <!-- TipTap mounts its contenteditable surface here. Dropping or pasting an image
        onto it takes the same upload path as the toolbar button. -->
   <div

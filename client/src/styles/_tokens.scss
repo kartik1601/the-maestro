@@ -81,6 +81,9 @@
 
   --focus-ring: 0 0 0 2px rgb(65 107 141 / 45%);
 
+  /* The brand nuclide: tan in daylight, beige at night. */
+  --mark-ink: var(--tan-500);
+
   /* ── Type ────────────────────────────────────────────────────────────────── */
   /* System stacks only — the site must render identically with no network. */
   --font-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
@@ -175,6 +178,9 @@
   --accent-calm-soft: rgb(169 183 154 / 13%);
 
   --focus-ring: 0 0 0 2px rgb(147 174 196 / 55%);
+
+  /* Beige, so the mark stays legible against carbon. */
+  --mark-ink: #e6d7bd;
 
   --shadow-sm: 0 1px 1px rgb(0 0 0 / 45%);
   --shadow-md: 0 1px 3px rgb(0 0 0 / 50%);
