@@ -252,6 +252,103 @@ p {
   }
 }
 
+/* ── Embedded video ────────────────────────────────────────────────────────── */
+
+/**
+ * Global rather than component-scoped: these arrive inside authored HTML through
+ * `innerHTML` and never carry Angular's scoping attribute.
+ */
+.yt {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  margin-block: var(--space-5);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--carbon-800);
+}
+
+.yt__facade,
+.yt__frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.yt__facade {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+}
+
+.yt__thumb {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The play target, sized to YouTube's own so it reads instantly. */
+.yt__play {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 4.25rem;
+  height: 3rem;
+  border-radius: var(--radius-lg);
+  background: rgb(20 20 20 / 78%);
+  color: #ffffff;
+  font-size: var(--text-lg);
+  line-height: 1;
+  padding-inline-start: 0.15em;
+  transition:
+    background-color var(--duration-base) var(--ease-out),
+    transform var(--duration-base) var(--ease-out);
+}
+
+.yt__facade:hover .yt__play {
+  background: #c0392b;
+  transform: scale(1.06);
+}
+
+.yt__title {
+  position: absolute;
+  inset: auto 0 0;
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  background: linear-gradient(to top, rgb(0 0 0 / 72%), transparent);
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  text-align: start;
+}
+
+/* In the editor the block is a still, so it is recognisable while writing. */
+.yt--editing {
+  display: grid;
+  place-items: center;
+
+  img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.yt__badge {
+  position: relative;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: rgb(20 20 20 / 78%);
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+}
+
 /**
  * Raised cap on the opening paragraph. Lives here rather than in a component's
  * stylesheet because these paragraphs arrive through `innerHTML` and never carry

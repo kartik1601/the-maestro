@@ -58,6 +58,14 @@ export interface DialogueLine {
   line: string;
 }
 
+/** A sub-section of a shelf. `key` is what a work's collectionKey points at. */
+export interface WorkCollection {
+  key: string;
+  label: string;
+  note: string;
+  sortOrder: number;
+}
+
 /**
  * A page's editable copy. Every visible string on the site comes from one of these,
  * so the author can rewrite any of it without a redeploy.
@@ -72,6 +80,7 @@ export interface Page {
   verseSource: string;
   dialogue: DialogueLine[];
   dialogueSource: string;
+  collections: WorkCollection[];
   profile?: Profile;
   published: boolean;
   updatedAt: string;

@@ -8,6 +8,7 @@ import { ContentService } from '../../core/content.service';
 import { Section, Work } from '../../core/models';
 import { RichEditorComponent } from '../../shared/rich-editor/rich-editor';
 import { AuthoredHtmlPipe } from '../../shared/safe-html.pipe';
+import { YouTubeEmbedsDirective } from '../../shared/rich-editor/youtube-embeds.directive';
 
 /**
  * A single poem or song: read as a page, edited in place by the author without
@@ -16,7 +17,14 @@ import { AuthoredHtmlPipe } from '../../shared/safe-html.pipe';
  */
 @Component({
   selector: 'app-document',
-  imports: [RouterLink, DatePipe, FormsModule, RichEditorComponent, AuthoredHtmlPipe],
+  imports: [
+    RouterLink,
+    DatePipe,
+    FormsModule,
+    RichEditorComponent,
+    AuthoredHtmlPipe,
+    YouTubeEmbedsDirective,
+  ],
   templateUrl: './document.html',
   styleUrl: './document.scss',
 })

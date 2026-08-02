@@ -6,7 +6,8 @@ import { forkJoin, map, switchMap } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
 import { ContentService } from '../../core/content.service';
 import { SyncService } from '../../core/sync.service';
-import { DialogueLine, Page, Section, Work } from '../../core/models';
+import { DialogueLine, Page, Section, Work, WorkCollection } from '../../core/models';
+import { ModalService } from '../../shared/modal/modal.service';
 import { TitlePiece, tintWord } from '../../shared/title-tint';
 import { RefreshPillComponent } from '../../shared/refresh-pill/refresh-pill';
 
@@ -17,24 +18,8 @@ interface Group {
   works: Work[];
 }
 
-/**
- * Sub-collections per section. These are structural — they decide how works are
- * grouped, not what the page says — so they stay in code while all page copy
- * (headings, ledes, dialogue) comes from MongoDB.
- */
-const SECTION_GROUPS: Record<Section, { key: string; label: string; note: string }[]> = {
-  novels: [{ key: 'uranium-235', label: 'uranium-235', note: 'The series entire' }],
-  poems: [
-    { key: 'rains-of-love', label: 'Rains of Love', note: 'Written for her' },
-    { key: 'others', label: 'Others', note: 'Everything else' },
-  ],
-  songs: [
-    { key: 'kk', label: 'KK', note: 'For the voice that started it' },
-    { key: 'others', label: 'Others', note: 'Covers and originals' },
-  ],
-  plays: [{ key: 'others', label: 'For the stage', note: '' }],
-  novelettes: [{ key: 'others', label: 'The novelettes', note: '' }],
-};
+/** Sections whose works are written on the page rather than uploaded as a PDF. */
+const DOCUMENT_SECTIONS: Section[] = ['poems', 'songs'];
 
 @Component({
   selector: 'app-shelf',
@@ -45,6 +30,7 @@ const SECTION_GROUPS: Record<Section, { key: string; label: string; note: string
 export class ShelfComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly content = inject(ContentService);
+  private readonly modal = inject(ModalService);
   protected readonly auth = inject(AuthService);
   protected readonly sync = inject(SyncService);
 
@@ -59,6 +45,13 @@ export class ShelfComponent {
   protected readonly draftSubtitle = signal('');
   protected readonly draftDialogue = signal<DialogueLine[]>([]);
   protected readonly draftDialogueSource = signal('');
+  protected readonly draftCollections = signal<WorkCollection[]>([]);
+
+  /** New-work composer state, keyed by the sub-section it will be filed into. */
+  protected readonly addingTo = signal<string | null>(null);
+  protected readonly newWorkTitle = signal('');
+  protected readonly newWorkSubtitle = signal('');
+  protected readonly creating = signal(false);
 
   /** Read from route data, so all five sections share this one component. */
   protected readonly section = toSignal(
@@ -71,17 +64,27 @@ export class ShelfComponent {
   /** The tint belongs to the Uranium-235 books and nowhere else. */
   protected readonly tintsTitles = computed(() => this.section() === 'novels');
 
-  protected readonly groupConfig = computed(() => SECTION_GROUPS[this.section()]);
+  /** Sub-sections come from the page document, so the author can edit them. */
+  protected readonly groupConfig = computed(() =>
+    [...(this.page()?.collections ?? [])].sort((a, b) => a.sortOrder - b.sortOrder),
+  );
 
-  /** Only groups that actually contain something are rendered. */
+  /**
+   * Empty sub-sections stay hidden from readers but remain visible to the author —
+   * otherwise a newly created one would vanish before anything could be filed into it.
+   */
   protected readonly groups = computed<Group[]>(() =>
     this.groupConfig()
       .map((group) => ({
-        ...group,
+        key: group.key,
+        label: group.label,
+        note: group.note,
         works: this.works().filter((work) => work.collectionKey === group.key),
       }))
-      .filter((group) => group.works.length > 0),
+      .filter((group) => group.works.length > 0 || this.editing()),
   );
+
+  protected readonly canAddWorks = computed(() => DOCUMENT_SECTIONS.includes(this.section()));
 
   /**
    * Anything whose collectionKey does not match a configured group still needs a
@@ -100,7 +103,8 @@ export class ShelfComponent {
       this.draftTitle() !== page.title ||
       this.draftSubtitle() !== page.subtitle ||
       this.draftDialogueSource() !== page.dialogueSource ||
-      JSON.stringify(this.draftDialogue()) !== JSON.stringify(page.dialogue ?? [])
+      JSON.stringify(this.draftDialogue()) !== JSON.stringify(page.dialogue ?? []) ||
+      JSON.stringify(this.draftCollections()) !== JSON.stringify(page.collections ?? [])
     );
   });
 
@@ -195,6 +199,7 @@ export class ShelfComponent {
         subtitle: this.draftSubtitle().trim(),
         dialogue: this.draftDialogue(),
         dialogueSource: this.draftDialogueSource().trim(),
+        collections: this.draftCollections(),
       })
       .subscribe({
         next: (page) => {
@@ -228,6 +233,82 @@ export class ShelfComponent {
     this.draftDialogue.update((lines) => lines.filter((_, i) => i !== index));
   }
 
+  // ── Sub-sections ───────────────────────────────────────────────────────────
+
+  protected updateCollection(index: number, field: 'label' | 'note', value: string): void {
+    this.draftCollections.update((rows) =>
+      rows.map((row, i) => (i === index ? { ...row, [field]: value } : row)),
+    );
+  }
+
+  protected addCollection(): void {
+    this.draftCollections.update((rows) => [
+      ...rows,
+      { key: `section-${Date.now().toString(36)}`, label: 'New sub-section', note: '', sortOrder: rows.length },
+    ]);
+  }
+
+  /**
+   * Removing a sub-section leaves its works behind rather than deleting them; they
+   * fall through to "Unfiled", where they can be re-filed instead of disappearing.
+   */
+  protected async removeCollection(index: number): Promise<void> {
+    const row = this.draftCollections()[index];
+    const orphans = this.works().filter((work) => work.collectionKey === row.key).length;
+
+    const confirmed = await this.modal.confirm({
+      title: `Remove "${row.label}"?`,
+      message: orphans
+        ? `${orphans} ${orphans === 1 ? 'work moves' : 'works move'} to Unfiled. Nothing is deleted.`
+        : 'This sub-section is empty.',
+      confirmLabel: 'Remove',
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    this.draftCollections.update((rows) => rows.filter((_, i) => i !== index));
+  }
+
+  // ── Adding works ───────────────────────────────────────────────────────────
+
+  protected startAdding(collectionKey: string): void {
+    this.addingTo.set(collectionKey);
+    this.newWorkTitle.set('');
+    this.newWorkSubtitle.set('');
+  }
+
+  protected cancelAdding(): void {
+    this.addingTo.set(null);
+  }
+
+  protected createWork(collectionKey: string): void {
+    const title = this.newWorkTitle().trim();
+    if (!title || this.creating()) return;
+
+    this.creating.set(true);
+    this.content
+      .createWork({
+        section: this.section(),
+        kind: 'document',
+        title,
+        subtitle: this.newWorkSubtitle().trim(),
+        collectionKey,
+        // Created as a draft: it exists to be written into, not to be read yet.
+        published: false,
+      })
+      .subscribe({
+        next: (work) => {
+          this.works.update((all) => [...all, work]);
+          this.creating.set(false);
+          this.addingTo.set(null);
+        },
+        error: (response) => {
+          this.error.set(response?.error?.error ?? 'That could not be created.');
+          this.creating.set(false);
+        },
+      });
+  }
+
   private applyPage(page: Page): void {
     this.page.set(page);
     this.draftTitle.set(page.title ?? '');
@@ -235,5 +316,6 @@ export class ShelfComponent {
     // Cloned so editing a row does not mutate the loaded page.
     this.draftDialogue.set((page.dialogue ?? []).map((entry) => ({ ...entry })));
     this.draftDialogueSource.set(page.dialogueSource ?? '');
+    this.draftCollections.set((page.collections ?? []).map((entry) => ({ ...entry })));
   }
 }

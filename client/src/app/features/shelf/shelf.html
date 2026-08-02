@@ -70,6 +70,44 @@
         />
       </div>
 
+      <div class="field">
+        <span class="field__label">Sub-sections</span>
+        <p class="field__hint">
+          The heading above each group of works, and the note beside it.
+        </p>
+
+        @for (row of draftCollections(); track row.key) {
+          <div class="collection-edit">
+            <input
+              class="input"
+              type="text"
+              placeholder="Title"
+              [ngModel]="row.label"
+              (ngModelChange)="updateCollection($index, 'label', $event)"
+            />
+            <input
+              class="input"
+              type="text"
+              placeholder="Sub-text"
+              [ngModel]="row.note"
+              (ngModelChange)="updateCollection($index, 'note', $event)"
+            />
+            <button
+              class="btn btn--quiet"
+              type="button"
+              aria-label="Remove sub-section"
+              (click)="removeCollection($index)"
+            >
+              ✕
+            </button>
+          </div>
+        }
+
+        <button class="btn btn--ghost collection-edit__add" type="button" (click)="addCollection()">
+          Add a sub-section
+        </button>
+      </div>
+
       <div class="page-edit__actions">
         <button
           class="btn btn--primary"
@@ -103,12 +141,14 @@
               @if (exchange.speaker) {
                 <span class="dialogue__speaker">{{ exchange.speaker }}:</span>
               }
-              <!-- Kept on one line: a newline between the pieces would render as a
+              <!-- Pieces kept on one line: a newline between them would render as a
                    space and split "five?" into "five ?". -->
-              @for (part of lineParts(exchange.line); track $index) {<span
-                [class.dialogue__mark]="part.mark"
-                >{{ part.text }}</span
-              >}
+              <span [class.dialogue__line--unattributed]="!exchange.speaker"
+                >@for (part of lineParts(exchange.line); track $index) {<span
+                  [class.dialogue__mark]="part.mark"
+                  >{{ part.text }}</span
+                >}</span
+              >
             </p>
           }
           @if (page()?.dialogueSource) {
@@ -146,7 +186,51 @@
             <p class="group__note">{{ group.note }}</p>
           }
           <span class="group__count">{{ group.works.length }}</span>
+
+          @if (editing() && canAddWorks()) {
+            <button class="btn btn--ghost group__add" type="button" (click)="startAdding(group.key)">
+              Add
+            </button>
+          }
         </header>
+
+        <!-- Composer for a new poem or song, filed into this sub-section. -->
+        @if (addingTo() === group.key) {
+          <div class="new-work">
+            <input
+              class="input"
+              type="text"
+              placeholder="Title"
+              [ngModel]="newWorkTitle()"
+              (ngModelChange)="newWorkTitle.set($event)"
+            />
+            <input
+              class="input"
+              type="text"
+              placeholder="Subtitle (optional)"
+              [ngModel]="newWorkSubtitle()"
+              (ngModelChange)="newWorkSubtitle.set($event)"
+            />
+            <div class="new-work__actions">
+              <button
+                class="btn btn--primary"
+                type="button"
+                [disabled]="!newWorkTitle().trim() || creating()"
+                (click)="createWork(group.key)"
+              >
+                {{ creating() ? 'Creating…' : 'Create' }}
+              </button>
+              <button class="btn btn--ghost" type="button" (click)="cancelAdding()">Cancel</button>
+            </div>
+            <p class="field__hint">
+              Created as a draft. Open it to write, then publish when it is ready.
+            </p>
+          </div>
+        }
+
+        @if (group.works.length === 0) {
+          <p class="group__empty">Nothing filed here yet.</p>
+        }
 
         <ul class="grid stagger">
           <!-- cardIndex drives which colour this card's tinted syllable takes. -->
@@ -190,7 +274,7 @@
                         {{ work.pdf.pageCount ? work.pdf.pageCount + ' pages' : 'Ready to read' }}
                       </span>
                     } @else {
-                      <span class="tag tag--waiting">Not yet uploaded</span>
+                      <span class="tag tag--waiting">Under Ponderation…</span>
                     }
                   } @else if (work.readingMinutes) {
                     <span class="tag">{{ work.readingMinutes }} min read</span>

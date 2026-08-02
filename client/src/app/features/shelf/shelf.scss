@@ -22,14 +22,32 @@
   animation-delay: 160ms;
 }
 
+/**
+ * Two columns: the speaker, then the speech. A hanging indent would let a long line
+ * wrap back underneath the speaker's name; a fixed first column keeps every line of
+ * every exchange starting at the same place.
+ */
 .dialogue__line {
+  display: grid;
+  grid-template-columns: 6rem 1fr;
+  gap: var(--space-2);
   font-family: var(--font-serif);
   color: var(--text-secondary);
-  text-indent: -1.5rem;
-  padding-inline-start: 1.5rem;
 
   & + & {
     margin-block-start: var(--space-3);
+  }
+}
+
+/* An unattributed line still starts where the speech does. */
+.dialogue__line--unattributed {
+  grid-column-start: 2;
+}
+
+@media (max-width: 34rem) {
+  .dialogue__line {
+    grid-template-columns: 1fr;
+    gap: 0;
   }
 }
 
@@ -41,7 +59,6 @@
 .dialogue__speaker {
   font-weight: 600;
   color: var(--text-primary);
-  margin-inline-end: 0.34em;
 }
 
 /* The series number keeps its glossy red wherever it appears in running prose. */
@@ -91,8 +108,52 @@
   resize: vertical;
 }
 
-.dialogue-edit__add {
+.dialogue-edit__add,
+.collection-edit__add {
   align-self: flex-start;
+}
+
+.collection-edit {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: var(--space-2);
+  align-items: start;
+}
+
+/* ── Adding a work ─────────────────────────────────────────────────────────── */
+
+.group__add {
+  margin-inline-start: var(--space-3);
+}
+
+.new-work {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: var(--measure-wide);
+  margin-block-end: var(--space-5);
+  padding: var(--space-4);
+  border: 1px dashed var(--border-medium);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+}
+
+.new-work__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.group__empty {
+  margin-block-end: var(--space-5);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-style: italic;
+}
+
+@media (max-width: 40rem) {
+  .collection-edit {
+    grid-template-columns: 1fr;
+  }
 }
 
 .page-edit__actions {

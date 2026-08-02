@@ -24,6 +24,21 @@ const dialogueLineSchema = new mongoose.Schema(
 );
 
 /**
+ * A sub-section of a shelf — "Rains of Love", "KK", "uranium-235". The `key` is what
+ * a work's `collectionKey` points at, so it is the join between the two collections
+ * and must not change casually; the label and note are free text the author edits.
+ */
+const collectionSchema = new mongoose.Schema(
+  {
+    key: { type: String, required: true },
+    label: { type: String, default: '' },
+    note: { type: String, default: '' },
+    sortOrder: { type: Number, default: 0 },
+  },
+  { _id: false },
+);
+
+/**
  * One document per page of the site — the blogs feed, each of the five sections, and
  * About. Every visible string lives here rather than in the client, so the author can
  * rewrite any of it in place and readers see the change without a redeploy.
@@ -50,6 +65,9 @@ const pageSchema = new mongoose.Schema(
     /** Novels: the quoted exchange above the shelf. */
     dialogue: { type: [dialogueLineSchema], default: [] },
     dialogueSource: { type: String, default: '' },
+
+    /** Section shelves: the sub-sections works are grouped into. */
+    collections: { type: [collectionSchema], default: [] },
 
     /** About: the author's details. */
     profile: { type: profileSchema, default: () => ({}) },

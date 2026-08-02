@@ -12,6 +12,7 @@ import { routes } from './app.routes';
 import { authInterceptor } from './core/auth.interceptor';
 import { AuthService } from './core/auth.service';
 import { ThemeService } from './core/theme.service';
+import { SessionGuardService } from './core/session-guard.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -36,6 +37,8 @@ export const appConfig: ApplicationConfig = {
      */
     provideAppInitializer(async () => {
       inject(ThemeService);
+      // Instantiated here so it starts watching as soon as a session exists.
+      inject(SessionGuardService);
       await firstValueFrom(inject(AuthService).restoreSession());
     }),
   ],

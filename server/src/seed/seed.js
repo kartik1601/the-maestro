@@ -124,6 +124,25 @@ export async function seedDatabase({ quiet = false } = {}) {
     await seedPage(page, log);
   }
 
+  /**
+   * A page the author has already edited is skipped wholesale by seedPage, so a field
+   * introduced afterwards would never reach it — and a shelf with no collections
+   * renders empty, because the groups come from this list. Backfilled only where it is
+   * absent, which cannot disturb anything the author has set.
+   */
+  const withoutCollections = SECTION_PAGES.filter((page) => page.collections?.length);
+  const filled = await Page.bulkWrite(
+    withoutCollections.map((page) => ({
+      updateOne: {
+        filter: { slug: page.slug, $or: [{ collections: { $size: 0 } }, { collections: null }] },
+        update: { $set: { collections: page.collections } },
+      },
+    })),
+  );
+  if (filled.modifiedCount > 0) {
+    log(`[seed] backfilled collections on ${filled.modifiedCount} pages.`);
+  }
+
   if ((await Post.estimatedDocumentCount()) === 0) {
     await Post.insertMany(
       POSTS.map((post) => ({ ...post, body: sanitizeRichText(post.body), published: true })),
@@ -183,6 +202,12 @@ function snapshotOf(page) {
       line: entry.line ?? '',
     })),
     dialogueSource: page.dialogueSource ?? '',
+    collections: (page.collections ?? []).map((entry) => ({
+      key: entry.key ?? '',
+      label: entry.label ?? '',
+      note: entry.note ?? '',
+      sortOrder: entry.sortOrder ?? 0,
+    })),
     profile: {
       photoUrl: profile.photoUrl ?? '',
       bornOn: profile.bornOn ? new Date(profile.bornOn).toISOString() : '',

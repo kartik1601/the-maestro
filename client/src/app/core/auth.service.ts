@@ -26,9 +26,13 @@ export class AuthService {
    */
   private readonly accessToken = signal<string | null>(null);
   private readonly displayName = signal<string | null>(null);
+  private readonly expiresAt = signal<number | null>(null);
 
   readonly isAdmin = computed(() => this.accessToken() !== null);
   readonly adminName = this.displayName.asReadonly();
+
+  /** Epoch milliseconds at which the current access token lapses, if any. */
+  readonly accessTokenExpiry = this.expiresAt.asReadonly();
 
   /**
    * When true, the author is editing rather than reading. Every editable surface
@@ -94,11 +98,34 @@ export class AuthService {
   private accept(response: AuthResponse): void {
     this.accessToken.set(response.accessToken);
     this.displayName.set(response.admin?.displayName ?? 'The Author');
+    this.expiresAt.set(expiryOf(response.accessToken));
   }
 
   private clear(): void {
     this.accessToken.set(null);
     this.displayName.set(null);
+    this.expiresAt.set(null);
     this.editMode.set(false);
+  }
+}
+
+/**
+ * Reads the `exp` claim so the session guard knows when to offer a renewal.
+ *
+ * This is not verification — the signature is the server's business, and this token
+ * came from the server over HTTPS. It only needs the timestamp, so a malformed token
+ * simply yields null and the guard stays quiet.
+ */
+function expiryOf(token: string): number | null {
+  try {
+    const [, payload] = token.split('.');
+    if (!payload) return null;
+
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    const exp = JSON.parse(json)?.exp;
+
+    return typeof exp === 'number' ? exp * 1000 : null;
+  } catch {
+    return null;
   }
 }

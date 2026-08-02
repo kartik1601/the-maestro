@@ -19,6 +19,7 @@ import { TextAlign } from '@tiptap/extension-text-align';
 import { TextStyleKit } from '@tiptap/extension-text-style';
 import { ContentService } from '../../core/content.service';
 import { ModalService } from '../modal/modal.service';
+import { YouTubeBlock, youTubeId } from './youtube';
 
 type ToolKind = 'mark' | 'node' | 'align' | 'action';
 
@@ -96,6 +97,7 @@ export class RichEditorComponent {
       { id: 'link', label: 'Link', glyph: '⧉', kind: 'action', run: (e) => this.promptForLink(e) },
       { id: 'upload', label: 'Upload an image', glyph: '▣', kind: 'action', run: () => this.pickFile() },
       { id: 'image', label: 'Image by address', glyph: '▤', kind: 'action', run: (e) => this.promptForImage(e) },
+      { id: 'youtube', label: 'YouTube video', glyph: '▶', kind: 'action', run: () => this.promptForVideo() },
       { id: 'table', label: 'Table', glyph: '▦', kind: 'action', run: (e) => e.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
       { id: 'horizontalRule', label: 'Divider', glyph: '—', kind: 'action', run: (e) => e.chain().focus().setHorizontalRule().run() },
     ],
@@ -155,6 +157,7 @@ export class RichEditorComponent {
         Highlight,
         Image.configure({ inline: false }),
         TableKit.configure({ table: { resizable: true } }),
+        YouTubeBlock,
         Placeholder.configure({ placeholder: () => this.placeholder() }),
       ],
       content: this.value(),
@@ -198,6 +201,38 @@ export class RichEditorComponent {
     });
 
     if (src?.trim()) editor.chain().focus().setImage({ src: src.trim() }).run();
+  }
+
+  /**
+   * Accepts any YouTube link shape and stores only the extracted id, so the document
+   * never carries a URL somebody could point elsewhere.
+   */
+  private async promptForVideo(): Promise<void> {
+    const link = await this.modal.prompt({
+      title: 'YouTube link',
+      message: 'Paste the address of the video. It appears as a player readers can play in place.',
+      placeholder: 'https://www.youtube.com/watch?v=…',
+      confirmLabel: 'Insert',
+    });
+    if (link === null) return;
+
+    const videoId = youTubeId(link);
+    if (!videoId) {
+      await this.modal.alert({
+        title: 'That is not a YouTube link',
+        message: 'Try a link like https://www.youtube.com/watch?v=… or https://youtu.be/…',
+      });
+      return;
+    }
+
+    const title = await this.modal.prompt({
+      title: 'Give it a caption',
+      message: 'Shown over the thumbnail, and read out by screen readers. Optional.',
+      placeholder: 'Optional',
+      confirmLabel: 'Insert',
+    });
+
+    this.editor?.chain().focus().setYouTube({ videoId, title: title?.trim() ?? '' }).run();
   }
 
   /** Opens the operating system's file picker. */

@@ -43,7 +43,9 @@ export const env = {
   jwt: {
     accessSecret: process.env.JWT_ACCESS_SECRET ?? ephemeral('JWT_ACCESS_SECRET'),
     refreshSecret: process.env.JWT_REFRESH_SECRET ?? ephemeral('JWT_REFRESH_SECRET'),
-    accessTtl: process.env.JWT_ACCESS_TTL ?? '15m',
+    // Three hours: long enough to write a chapter without being interrupted. The
+    // refresh token still rotates, so a stolen access token has a bounded life.
+    accessTtl: process.env.JWT_ACCESS_TTL ?? '3h',
     refreshTtl: process.env.JWT_REFRESH_TTL ?? '7d',
     issuer: 'the-maestro',
     audience: 'the-maestro-admin',

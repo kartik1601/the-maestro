@@ -149,6 +149,7 @@ export const SECTION_PAGES = [
     slug: 'novels',
     title: 'Novels',
     subtitle: 'One series, sixteen books.',
+    collections: [{ key: 'uranium-235', label: 'uranium-235', note: '', sortOrder: 0 }],
     dialogue: [
       { speaker: 'Professor', line: 'Why two-thirty five?' },
       { speaker: 'The Man', line: "I didn't know it existed." },
@@ -165,21 +166,31 @@ export const SECTION_PAGES = [
     title: 'Poems',
     subtitle:
       'Some of these were written for one person. The rest were written because of everyone else.',
+    collections: [
+      { key: 'rains-of-love', label: 'Rains of Love', note: 'Written for her', sortOrder: 0 },
+      { key: 'others', label: 'Others', note: 'Everything else', sortOrder: 1 },
+    ],
   },
   {
     slug: 'songs',
     title: 'Songs',
     subtitle: 'Without songs the day is an empty vessel running on biological mechanics.',
+    collections: [
+      { key: 'kk', label: 'KK', note: 'For the voice that started it', sortOrder: 0 },
+      { key: 'others', label: 'Others', note: 'Covers and originals', sortOrder: 1 },
+    ],
   },
   {
     slug: 'plays',
     title: 'Plays',
     subtitle: 'Written to be spoken aloud, and to be heard in a room.',
+    collections: [{ key: 'others', label: 'For the stage', note: '', sortOrder: 0 }],
   },
   {
     slug: 'novelettes',
     title: 'Novelettes',
     subtitle: 'Shorter than the novels, and heavier for it.',
+    collections: [{ key: 'others', label: 'The novelettes', note: '', sortOrder: 0 }],
   },
 ];
 

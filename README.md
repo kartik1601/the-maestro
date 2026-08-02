@@ -32,7 +32,7 @@ MONGODB_DB_NAME=the_maestro
 
 JWT_ACCESS_SECRET=           # required in production — 48+ random bytes, different from below
 JWT_REFRESH_SECRET=          # required in production
-JWT_ACCESS_TTL=15m
+JWT_ACCESS_TTL=3h
 JWT_REFRESH_TTL=7d
 
 ADMIN_PORTAL_PATH=           # required in production — the private URL segment the login sits under
@@ -130,6 +130,6 @@ npm run admin:create   # provision the author, interactively (production)
 
 ## Status
 
-v1.2.0 — third review round applied, running against MongoDB Atlas, not yet deployed.
+v1.3.0 — fourth review round applied, running against MongoDB Atlas, not yet deployed.
 Review notes are tracked in `.claude/SESSION_PROMPTS.md`; known gaps are listed at the
 end of `.claude/MEMORY.md`. Both are local-only — see Layout above.

@@ -85,7 +85,11 @@
         }
       </div>
     } @else {
-      <div class="doc__body prose rise" [innerHTML]="work.body | authoredHtml"></div>
+      <div
+        class="doc__body prose rise"
+        appYouTubeEmbeds
+        [innerHTML]="work.body | authoredHtml"
+      ></div>
     }
   </article>
 }

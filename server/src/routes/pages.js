@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { Page } from '../models/page.js';
 import { attachAdmin, requireAdmin } from '../middleware/auth.js';
 import { sanitizeRichText } from '../lib/sanitize.js';
+import { slugify } from '../lib/slugify.js';
 
 /** Every page's editable copy: headings, verse, dialogue, profile, prose. */
 export function pagesRouter() {
@@ -66,6 +67,20 @@ function readPagePayload(body) {
   }
   if (body.dialogueSource !== undefined) {
     payload.dialogueSource = String(body.dialogueSource).trim();
+  }
+
+  if (body.collections !== undefined) {
+    payload.collections = (Array.isArray(body.collections) ? body.collections : [])
+      .map((entry, index) => ({
+        key: slugify(entry?.key ?? entry?.label ?? ''),
+        label: String(entry?.label ?? '').trim().slice(0, 120),
+        note: String(entry?.note ?? '').trim().slice(0, 200),
+        sortOrder: Number.isFinite(Number(entry?.sortOrder)) ? Number(entry.sortOrder) : index,
+      }))
+      // A sub-section with no key has nothing for works to point at.
+      .filter((entry) => entry.key)
+      // Keys are the join to Work.collectionKey, so duplicates would split a shelf.
+      .filter((entry, index, all) => all.findIndex((x) => x.key === entry.key) === index);
   }
 
   if (body.profile !== undefined) payload.profile = readProfile(body.profile);
