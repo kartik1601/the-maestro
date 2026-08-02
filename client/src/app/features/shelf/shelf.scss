@@ -250,6 +250,43 @@
   font-variant-numeric: tabular-nums;
 }
 
+/**
+ * On a phone the head breaks into two rows.
+ *
+ * All four parts share one baseline-aligned row on a wide screen, which reads well
+ * while the title is short. A title as large as `uranium-235` — clamped, but still the
+ * biggest type on the page — leaves the note squeezed into whatever is left between it
+ * and the count, where it reads as something wedged in rather than as the title's own
+ * subtitle. Reordering puts the count back beside the title it counts and drops the
+ * note onto a line of its own directly beneath.
+ */
+@media (max-width: 40rem) {
+  .group__head {
+    flex-wrap: wrap;
+    row-gap: var(--space-1);
+  }
+
+  .group__title {
+    order: 1;
+  }
+
+  .group__count {
+    order: 2;
+    /* Takes over pushing duty from the note, which is no longer on this row. */
+    margin-inline-start: auto;
+  }
+
+  .group__note {
+    order: 3;
+    flex-basis: 100%;
+    margin-inline-end: 0;
+  }
+
+  .group__add {
+    order: 4;
+  }
+}
+
 /* ── Cards ─────────────────────────────────────────────────────────────────── */
 
 .grid {
