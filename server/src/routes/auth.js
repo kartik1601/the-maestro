@@ -100,8 +100,8 @@ export function authRouter() {
 
 const cookieOptions = () => ({
   httpOnly: true,
-  secure: env.isProduction,
-  sameSite: 'lax',
+  secure: env.cookies.secure,
+  sameSite: env.cookies.sameSite,
   // Scoped to the portal so the refresh token is not attached to ordinary reads.
   path: `/api/${env.adminPortalPath}/auth`,
 });

@@ -27,6 +27,8 @@ const ephemeral = (name) => {
 };
 const ephemeralSecrets = new Set();
 
+const cookieSameSite = (process.env.COOKIE_SAMESITE ?? 'lax').toLowerCase();
+
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   get isProduction() {
@@ -35,6 +37,21 @@ export const env = {
 
   port: int(process.env.PORT, 4000),
   clientOrigin: process.env.CLIENT_ORIGIN ?? 'http://localhost:4200',
+
+  /**
+   * The refresh cookie has to survive the site and the API living apart.
+   *
+   * `lax` is correct whenever they share a registrable domain — api.themaestro.co.in
+   * and www.themaestro.co.in are the same site, so the cookie still travels and the
+   * CSRF protection `lax` buys is kept. Put the API on a different site, such as a
+   * raw onrender.com URL, and the login request becomes cross-site: browsers then
+   * send no cookie at all unless it is `none`, and reject `none` unless it is also
+   * Secure. Hence the pairing below and the guard at the foot of this file.
+   */
+  cookies: {
+    sameSite: cookieSameSite,
+    secure: (process.env.NODE_ENV ?? 'development') === 'production' || cookieSameSite === 'none',
+  },
 
   // Absent in development -> an in-process MongoDB is started instead (see db/connect.js).
   mongoUri: process.env.MONGODB_URI ?? '',
@@ -117,4 +134,18 @@ if (env.isProduction && ephemeralSecrets.size > 0) {
 
 if (env.isProduction && env.adminPortalPath === 'portal-dev-only') {
   throw new Error('ADMIN_PORTAL_PATH must be set to a private value in production.');
+}
+
+if (!['lax', 'strict', 'none'].includes(cookieSameSite)) {
+  throw new Error(`COOKIE_SAMESITE must be lax, strict or none — got '${cookieSameSite}'.`);
+}
+
+// `none` forces Secure above, and a Secure cookie over plain HTTP is discarded: the
+// login returns 200 and the session is gone by the next request. Only a warning, since
+// a development server fronted by an HTTPS tunnel is a legitimate reason to set this.
+if (cookieSameSite === 'none' && !env.isProduction) {
+  console.warn(
+    '[env] COOKIE_SAMESITE=none needs HTTPS — over plain http:// the browser will ' +
+      'drop the refresh cookie and admin sessions will not survive a reload.',
+  );
 }

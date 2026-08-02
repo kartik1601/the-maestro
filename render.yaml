@@ -1,0 +1,65 @@
+# Render blueprint for the API. The client is not here — it builds on Vercel from
+# the same repository (see vercel.json), which is why this deploys `server/` alone.
+#
+# Values marked `sync: false` are never committed: Render prompts for them on first
+# deploy and keeps them in the dashboard. Secrets belong there, not in this file.
+services:
+  - type: web
+    name: the-maestro-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm ci
+    startCommand: npm start
+
+    # Render restarts the instance if this stops answering, and the free plan sleeps
+    # after roughly fifteen minutes of quiet — the first request back in takes ~50s.
+    healthCheckPath: /api/health
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # The seeder is upsert-only and skips pages the author has edited, so it is
+      # safe to run on every cold start. It is what fills the shelf on a fresh
+      # database. See server/src/seed/seed.js.
+      - key: SEED_ON_BOOT
+        value: 'true'
+
+      # Comma-separated; must include every origin the browser will call from.
+      - key: CLIENT_ORIGIN
+        value: https://www.themaestro.co.in,https://themaestro.co.in
+
+      # `lax` holds only while the API answers on a themaestro.co.in subdomain.
+      # Until that custom domain is attached the API is on onrender.com — a
+      # different site — and the admin refresh cookie needs `none`.
+      - key: COOKIE_SAMESITE
+        value: none
+
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB_NAME
+        value: the_maestro
+
+      # 48+ random bytes each, and different from one another:
+      #   node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+      - key: JWT_ACCESS_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+
+      # Must match the ADMIN_PORTAL_PATH set in Vercel exactly, or the portal 404s.
+      - key: ADMIN_PORTAL_PATH
+        sync: false
+
+      # Optional — uploads fall back to MongoDB when these are absent.
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      - key: R2_PUBLIC_BASE_URL
+        sync: false

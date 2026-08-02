@@ -52,7 +52,8 @@ JWT_REFRESH_SECRET=          # required, different from the above
 JWT_ACCESS_TTL=3h
 JWT_REFRESH_TTL=7d
 ADMIN_PORTAL_PATH=           # required, must match the client build
-CLIENT_ORIGIN=               # the site's origin, for CORS
+CLIENT_ORIGIN=               # the site's origins, comma-separated, for CORS
+COOKIE_SAMESITE=lax          # 'none' when the API is on a different site than the client
 R2_ACCOUNT_ID=
 R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=
@@ -64,6 +65,17 @@ MAX_IMAGE_BYTES=8388608
 
 The server refuses to start in production if a secret is missing, if `MONGODB_URI` is
 absent, or if `ADMIN_PORTAL_PATH` is still the development default.
+
+`render.yaml` deploys it to Render's free plan: point a new Blueprint at this
+repository and fill in the values it prompts for. That plan sleeps after about fifteen
+minutes idle, so the first request after a quiet spell waits ~50s for a cold start.
+
+The refresh cookie is the one thing the split hosting complicates. `SameSite=lax` is
+sent only between same-site origins, and `www.themaestro.co.in` → `*.onrender.com` is
+not one: without `COOKIE_SAMESITE=none` the admin login succeeds and the session is
+gone on the next request. Attaching a custom domain such as `api.themaestro.co.in` to
+the Render service makes the two same-site again, at which point `lax` is both
+sufficient and stricter — prefer it once the domain is in place.
 
 Uploads go to R2 when it is configured and to MongoDB when it is not, so the project
 runs with no storage account at all.
