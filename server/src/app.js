@@ -1,4 +1,5 @@
 import express from 'express';
+import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -37,6 +38,13 @@ export function createApp() {
       credentials: true,
     }),
   );
+
+  /**
+   * Document bodies are HTML out of the editor and compress to a fraction of their
+   * size. PDFs and images are left alone: the default filter skips content types
+   * that are already compressed, so the reader's bytes pass through untouched.
+   */
+  app.use(compression());
 
   app.use(express.json({ limit: '2mb' }));
   app.use(cookieParser());
