@@ -83,6 +83,17 @@
         @if (saveError()) {
           <span class="doc__error">{{ saveError() }}</span>
         }
+
+        <!-- Held apart from Save and Discard: it is the one control here that cannot
+             be taken back, and it should not sit under a hand reaching for Save. -->
+        <button
+          class="btn btn--danger doc__delete"
+          type="button"
+          [disabled]="deleting()"
+          (click)="remove()"
+        >
+          {{ deleting() ? 'Deleting…' : 'Delete' }}
+        </button>
       </div>
     } @else {
       <div

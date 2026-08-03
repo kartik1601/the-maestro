@@ -1,11 +1,12 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { switchMap } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
 import { ContentService } from '../../core/content.service';
 import { Section, Work } from '../../core/models';
+import { ModalService } from '../../shared/modal/modal.service';
 import { RichEditorComponent } from '../../shared/rich-editor/rich-editor';
 import { AuthoredHtmlPipe } from '../../shared/safe-html.pipe';
 import { ProseTablesDirective } from '../../shared/prose-tables.directive';
@@ -32,7 +33,9 @@ import { YouTubeEmbedsDirective } from '../../shared/rich-editor/youtube-embeds.
 })
 export class DocumentComponent {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly content = inject(ContentService);
+  private readonly modal = inject(ModalService);
   protected readonly auth = inject(AuthService);
 
   protected readonly work = signal<Work | null>(null);
@@ -46,6 +49,7 @@ export class DocumentComponent {
   protected readonly saving = signal(false);
   protected readonly savedAt = signal<Date | null>(null);
   protected readonly saveError = signal<string | null>(null);
+  protected readonly deleting = signal(false);
 
   protected readonly editing = computed(() => this.auth.isAdmin() && this.auth.editMode());
   protected readonly backLink = computed(() => `/${this.work()?.section ?? ''}`);
@@ -127,6 +131,40 @@ export class DocumentComponent {
     this.draftBody.set(work.body ?? '');
     this.draftTitle.set(work.title);
     this.draftSubtitle.set(work.subtitle);
+  }
+
+  /**
+   * There is no undo and no trash: the API deletes the row outright. So the modal
+   * names the work being deleted rather than asking about "this item", and unsaved
+   * work in the editor is called out — losing a draft you were part-way through is a
+   * different kind of loss from deleting something you had finished with.
+   */
+  protected async remove(): Promise<void> {
+    const work = this.work();
+    if (!work || this.deleting()) return;
+
+    const confirmed = await this.modal.confirm({
+      title: `Delete "${work.title}"?`,
+      message: this.dirty()
+        ? 'This cannot be undone, and the unsaved changes in the editor go with it.'
+        : 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!confirmed) return;
+
+    this.deleting.set(true);
+    this.saveError.set(null);
+
+    this.content.deleteWork(work.id).subscribe({
+      // Back to the shelf, which refetches on arrival — so the card is already gone
+      // rather than lingering until the next reload.
+      next: () => this.router.navigate([this.backLink()]),
+      error: () => {
+        this.saveError.set('That could not be deleted.');
+        this.deleting.set(false);
+      },
+    });
   }
 
   protected togglePublished(): void {

@@ -375,16 +375,37 @@ p {
 }
 
 /**
- * Raised cap on the opening paragraph. Lives here rather than in a component's
+ * Dropped cap on the opening paragraph. Lives here rather than in a component's
  * stylesheet because these paragraphs arrive through `innerHTML` and never carry
  * Angular's scoping attribute — a scoped `> p` selector silently matches nothing.
+ *
+ * The two numbers below are derived, not eyeballed, because "two lines tall" is a
+ * claim about baselines: the cap's foot has to land on the second line's baseline,
+ * or it hangs in the gap between the two. It used to fall 4.8px short at this size,
+ * which is what made it look adrift. The top edge is where it always was; the letter
+ * grew downward to reach the baseline rather than sliding down to it.
+ *
+ * Measured, at `.prose`'s 18px/1.75 (baselines land at 22.0px and 53.5px) with the
+ * serif stack reporting ascent 1.036, descent 0.329 and cap height 0.697 em — read
+ * out of Iowan Old Style; Georgia is within half a percent on all three, so one pair
+ * of values serves both:
+ *
+ *   font-size    sets how far the cap reaches. 3.75em spans 22.0px down to 53.5px,
+ *                putting its top at 5.97px — the 6.03px it has always sat at.
+ *   line-height  sets the half-leading, which is where the glyph sits inside its own
+ *                box, and so does the fine positioning: 0.864 lands the foot on the
+ *                second baseline. No padding needed to make up a remainder.
+ *
+ * The float ends up 1.85 line-heights tall — past the second line, comfortably short
+ * of the third, so it displaces exactly two lines and no rounding error can pull down
+ * a third. Half a pixel is the floor on the fit: the browser rounds the cap's baseline
+ * to a whole pixel while line two's sits at 53.5.
  */
 .prose--opening > p:first-of-type::first-letter {
   float: inline-start;
   margin-inline-end: 0.08em;
-  padding-block-start: 0.06em;
-  font-size: 3.4em;
-  line-height: 0.78;
+  font-size: 3.75em;
+  line-height: 0.864;
   color: var(--accent-warm);
 }
 
@@ -433,7 +454,7 @@ p {
   }
 }
 
-/* Destructive confirmations only — deleting a post, and nothing else so far. */
+/* Destructive actions only — deleting a post, or a poem or song. */
 .btn--danger {
   background: var(--u235-red);
   color: #ffffff;
