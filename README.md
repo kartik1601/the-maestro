@@ -34,6 +34,7 @@ never linked from the site and does not appear in this file.
 | Editor | TipTap 3 |
 | PDF reader | ngx-extended-pdf-viewer (pdf.js) |
 | Styling | SCSS with CSS custom properties |
+| Uptime | UptimeRobot — keeps the API awake, alerts when it is not |
 
 ```
 client/    Angular — the site
@@ -55,3 +56,5 @@ The client builds to a static bundle on any static host; the API is an ordinary 
 server, with Atlas and R2 behind it. The two deploy independently — `vercel.json` and
 `render.yaml` describe each side, and their settings are configured on the host rather
 than in this repository.
+
+Cron jobs set-up for keeping server up.
