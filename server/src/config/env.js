@@ -29,6 +29,10 @@ const ephemeralSecrets = new Set();
 
 const cookieSameSite = (process.env.COOKIE_SAMESITE ?? 'lax').toLowerCase();
 
+// Read out here because `seedOnBoot` below is derived from it, and a property of an
+// object literal cannot reference a sibling while the literal is still being built.
+const mongoUri = process.env.MONGODB_URI ?? '';
+
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   get isProduction() {
@@ -54,7 +58,7 @@ export const env = {
   },
 
   // Absent in development -> an in-process MongoDB is started instead (see db/connect.js).
-  mongoUri: process.env.MONGODB_URI ?? '',
+  mongoUri,
   mongoDbName: process.env.MONGODB_DB_NAME ?? 'the_maestro',
 
   jwt: {
@@ -120,7 +124,18 @@ export const env = {
     maxImageBytes: int(process.env.MAX_IMAGE_BYTES, 8 * 1024 * 1024),
   },
 
-  seedOnBoot: bool(process.env.SEED_ON_BOOT, true),
+  /**
+   * Automatic only for the throwaway in-process database, which starts empty on every
+   * boot and would otherwise leave a fresh clone with nothing to look at.
+   *
+   * A real MONGODB_URI is somebody's actual archive, and the seeder is not as harmless
+   * against one as it looks. Its upserts are keyed on (section, slug), so a work the
+   * author has since renamed no longer matches its template row and gets re-inserted as
+   * a placeholder alongside the real one — which is exactly how the sample poems kept
+   * reappearing under Rains of Love after every `npm run dev`. Filling a genuinely new
+   * database is a deliberate, one-off act: `npm run seed`, or SEED_ON_BOOT=true.
+   */
+  seedOnBoot: bool(process.env.SEED_ON_BOOT, !mongoUri),
 };
 
 export const ephemeralSecretNames = () => [...ephemeralSecrets];

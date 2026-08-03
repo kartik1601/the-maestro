@@ -20,11 +20,14 @@ services:
       - key: NODE_ENV
         value: production
 
-      # The seeder is upsert-only and skips pages the author has edited, so it is
-      # safe to run on every cold start. It is what fills the shelf on a fresh
-      # database. See server/src/seed/seed.js.
+      # Off, and it must stay off. The free plan cold-starts constantly, and the
+      # seeder's upserts match on (section, slug): rename a work through the editor
+      # and the next boot no longer recognises it, re-inserting the placeholder
+      # template beside the real thing. The shelf was filled once; there is nothing
+      # left for this to do. Fill a genuinely new database with `npm run seed`
+      # instead. See server/src/seed/seed.js.
       - key: SEED_ON_BOOT
-        value: 'true'
+        value: 'false'
 
       # Comma-separated; must include every origin the browser will call from.
       - key: CLIENT_ORIGIN
