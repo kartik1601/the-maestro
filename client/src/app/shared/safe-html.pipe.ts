@@ -1,5 +1,6 @@
 import { Pipe, PipeTransform, inject } from '@angular/core';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { resolveMediaUrlsIn } from '../core/media-url';
 
 /**
  * Renders author-written HTML with its formatting intact.
@@ -12,12 +13,17 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
  * that has not been through that filter.
  *
  * Never point this at a string that came from anywhere but the content API.
+ *
+ * It is also where stored media paths become loadable URLs. Every prose surface on
+ * the site renders through this pipe, so doing it here covers images, audio and
+ * anything added later in one place — and, crucially, only for display: the relative
+ * path is what stays in the database.
  */
 @Pipe({ name: 'authoredHtml' })
 export class AuthoredHtmlPipe implements PipeTransform {
   private readonly sanitizer = inject(DomSanitizer);
 
   transform(html: string | null | undefined): SafeHtml {
-    return this.sanitizer.bypassSecurityTrustHtml(html ?? '');
+    return this.sanitizer.bypassSecurityTrustHtml(resolveMediaUrlsIn(html ?? ''));
   }
 }

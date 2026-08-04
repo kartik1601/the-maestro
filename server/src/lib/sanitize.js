@@ -54,7 +54,19 @@ const OPTIONS = {
   },
 };
 
-export const sanitizeRichText = (html) => sanitizeHtml(String(html ?? ''), OPTIONS);
+/**
+ * A media reference carrying somebody's host — `http://localhost:4000/api/media/…`.
+ *
+ * The client stores the relative form, but the server is where "what is in the
+ * database" is actually decided, and a document is only portable between the author's
+ * laptop and the deployed site if that holds for every write. An older bundle, a
+ * pasted fragment, or a hand-edited body would otherwise pin a file to a host that
+ * exists for nobody else.
+ */
+const ABSOLUTE_MEDIA = /(\s(?:src|data-audio)=")https?:\/\/[^/"]+(\/api\/media\/[a-f\d]{24})/gi;
+
+export const sanitizeRichText = (html) =>
+  sanitizeHtml(String(html ?? ''), OPTIONS).replace(ABSOLUTE_MEDIA, '$1$2');
 
 /** Plain-text preview for cards and listings, collapsed to a single line. */
 export function excerptFrom(html, maxLength = 220) {

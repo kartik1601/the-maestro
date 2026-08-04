@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Emote, Feed, Page, Post, ReactionResult, Section, Work } from './models';
+import { resolveMediaUrl } from './media-url';
 
 /** Every call the site makes against the content API. */
 @Injectable({ providedIn: 'root' })
@@ -106,13 +107,13 @@ export class ContentService {
   }
 
   /**
-   * Stored image URLs are relative (`/api/media/:id`) so a document is portable
+   * Stored media URLs are relative (`/api/media/:id`) so a document is portable
    * between environments; the browser still needs an absolute one during local
-   * development, where the API and the site are on different ports.
+   * development, where the API and the site are on different ports. See
+   * `core/media-url.ts` — this is display only, and must never be written back.
    */
   resolveMediaUrl(url: string): string {
-    if (/^https?:\/\//.test(url) || environment.apiBase.startsWith('/')) return url;
-    return url.startsWith('/api/') ? environment.apiBase.replace(/\/api$/, '') + url : url;
+    return resolveMediaUrl(url);
   }
 
   // ── Pages ──────────────────────────────────────────────────────────────────

@@ -1,4 +1,5 @@
 import { AfterViewChecked, Directive, ElementRef, inject } from '@angular/core';
+import { resolveMediaUrl } from '../../core/media-url';
 import { isOurMedia } from './audio';
 
 /**
@@ -53,7 +54,9 @@ export class AudioEmbedsDirective implements AfterViewChecked {
     player.className = 'audio__player';
     player.controls = true;
     player.preload = 'metadata';
-    player.src = src;
+    // Idempotent: the pipe has usually absolutized this already, and resolving an
+    // absolute URL returns it unchanged. Kept so the directive is correct on its own.
+    player.src = resolveMediaUrl(src);
     if (title) player.setAttribute('aria-label', title);
 
     block.append(player);

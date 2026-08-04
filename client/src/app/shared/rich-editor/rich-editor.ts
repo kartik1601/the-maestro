@@ -19,9 +19,31 @@ import { TableKit } from '@tiptap/extension-table';
 import { TextAlign } from '@tiptap/extension-text-align';
 import { TextStyleKit } from '@tiptap/extension-text-style';
 import { ContentService } from '../../core/content.service';
+import { resolveMediaUrl } from '../../core/media-url';
 import { ModalService } from '../modal/modal.service';
 import { AudioBlock } from './audio';
 import { YouTubeBlock, youTubeId } from './youtube';
+
+/**
+ * An image that displays from the API's origin while storing a relative path.
+ *
+ * Only the node view — what ProseMirror draws — is absolutized. `renderHTML`, which is
+ * what `getHTML()` serializes and what therefore reaches the database, is untouched,
+ * so nothing writes this machine's address into the document. Without this the author
+ * would see broken images while writing in development, where the site is on one port
+ * and the API on another.
+ */
+const PortableImage = Image.extend({
+  addNodeView() {
+    return ({ node }) => {
+      const dom = document.createElement('img');
+      dom.src = resolveMediaUrl(String(node.attrs['src'] ?? ''));
+      if (node.attrs['alt']) dom.alt = String(node.attrs['alt']);
+      if (node.attrs['title']) dom.title = String(node.attrs['title']);
+      return { dom };
+    };
+  },
+});
 
 type ToolKind = 'mark' | 'node' | 'align' | 'action';
 
@@ -186,7 +208,7 @@ export class RichEditorComponent {
         TextStyleKit,
         TextAlign.configure({ types: ['heading', 'paragraph'] }),
         Highlight,
-        Image.configure({ inline: false }),
+        PortableImage.configure({ inline: false }),
         TableKit.configure({ table: { resizable: true } }),
         YouTubeBlock,
         AudioBlock,
@@ -349,14 +371,9 @@ export class RichEditorComponent {
       confirmLabel: 'Insert',
     });
 
-    this.editor
-      .chain()
-      .focus()
-      .setAudio({
-        src: this.content.resolveMediaUrl(uploaded.url),
-        title: title?.trim() ?? '',
-      })
-      .run();
+    // The relative path is what goes into the document — see core/media-url.ts. The
+    // node view absolutizes it for the player it draws.
+    this.editor.chain().focus().setAudio({ src: uploaded.url, title: title?.trim() ?? '' }).run();
   }
 
   /**
@@ -374,11 +391,9 @@ export class RichEditorComponent {
 
     this.content.uploadImage(file, file.name.replace(/\.[^.]+$/, '')).subscribe({
       next: ({ url }) => {
-        this.editor
-          ?.chain()
-          .focus()
-          .setImage({ src: this.content.resolveMediaUrl(url), alt: file.name })
-          .run();
+        // Stored relative, like audio: an absolute URL here would bake this machine's
+        // address into a document that has to render on the deployed site too.
+        this.editor?.chain().focus().setImage({ src: url, alt: file.name }).run();
         this.uploading.set(false);
         input.value = '';
       },
@@ -457,7 +472,7 @@ export class RichEditorComponent {
 
     this.content.uploadImage(file).subscribe({
       next: ({ url }) => {
-        this.editor?.chain().focus().setImage({ src: this.content.resolveMediaUrl(url) }).run();
+        this.editor?.chain().focus().setImage({ src: url }).run();
         this.uploading.set(false);
       },
       error: (response) => {

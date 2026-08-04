@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 import { Media } from '../models/media.js';
+import { Page } from '../models/page.js';
+import { Post } from '../models/post.js';
 import { Work } from '../models/work.js';
 
 /**
@@ -14,6 +16,7 @@ import { Work } from '../models/work.js';
 export async function runMigrations({ quiet = false } = {}) {
   const backfilled = await backfillVideoIds();
   const reindexed = await replaceMediaKeyIndex();
+  const rehomed = await relativizeMediaUrls();
 
   if (backfilled && !quiet) {
     console.log(`[db] backfilled videoId on ${backfilled} work${backfilled === 1 ? '' : 's'}`);
@@ -21,6 +24,46 @@ export async function runMigrations({ quiet = false } = {}) {
   if (reindexed && !quiet) {
     console.log('[db] replaced the sparse media key index with a partial one');
   }
+  if (rehomed && !quiet) {
+    console.log(`[db] made ${rehomed} media reference${rehomed === 1 ? '' : 's'} relative`);
+  }
+}
+
+/**
+ * Rewrites media references that carry a host to the relative form.
+ *
+ * Until v1.4.0 the editor stored whatever URL the browser needed at the time, which in
+ * development is `http://localhost:4000/api/media/…` — an address that exists on one
+ * laptop. Content authored locally therefore looked right locally and broke on the
+ * deployed site: images 404, and audio blocks were removed outright by the client's
+ * own source check.
+ *
+ * Only the origin is dropped; the id, and everything else in the document, is left
+ * exactly as the author wrote it. The same file is served either way, because both
+ * environments read the same database and the same bucket.
+ */
+async function relativizeMediaUrls() {
+  const pattern = /(\s(?:src|data-audio)=")https?:\/\/[^/"]+(\/api\/media\/[a-f\d]{24})/gi;
+  let changed = 0;
+
+  for (const model of [Work, Page, Post]) {
+    const documents = await model
+      .find({ body: { $regex: '(src|data-audio)="https?://[^/"]+/api/media/', $options: 'i' } })
+      .select('body')
+      .lean();
+
+    for (const document of documents) {
+      const body = String(document.body ?? '').replace(pattern, '$1$2');
+      if (body === document.body) continue;
+
+      // timestamps: false — removing a hostname is a repair, not an edit by the
+      // author, and `updatedAt` is what the viewer sync shows a refresh pill for.
+      await model.updateOne({ _id: document._id }, { $set: { body } }, { timestamps: false });
+      changed += 1;
+    }
+  }
+
+  return changed;
 }
 
 /**

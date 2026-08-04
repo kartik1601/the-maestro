@@ -1,5 +1,6 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { environment } from '../../../environments/environment';
+import { resolveMediaUrl } from '../../core/media-url';
 
 export interface AudioOptions {
   src: string;
@@ -103,7 +104,9 @@ export const AudioBlock = Node.create({
         player.className = 'audio__player';
         player.controls = true;
         player.preload = 'metadata';
-        player.src = src;
+        // Validated as the stored relative path, played from the API's origin. The
+        // node's attribute keeps the portable form; only this element is absolute.
+        player.src = resolveMediaUrl(src);
         dom.append(player);
       } else {
         const missing = document.createElement('span');
