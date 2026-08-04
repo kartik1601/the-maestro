@@ -1,8 +1,8 @@
 <div class="editor" [class.editor--compact]="compact()">
   <div class="editor__toolbar" role="toolbar" aria-label="Formatting">
-    @for (group of tools; track $index) {
-      <div class="editor__group">
-        @for (tool of group; track tool.id) {
+    @for (group of groups; track group.name) {
+      <div class="editor__group" role="group" [attr.aria-label]="group.name">
+        @for (tool of group.tools; track tool.id) {
           <button
             class="tool"
             type="button"
@@ -10,10 +10,12 @@
             [class.tool--wide]="tool.glyph.length > 1"
             [attr.aria-label]="tool.label"
             [attr.aria-pressed]="tool.kind === 'action' ? null : isActive(tool)"
-            [title]="tool.label"
             (click)="run(tool)"
           >
-            {{ tool.glyph }}
+            <span class="tool__glyph">{{ tool.glyph }}</span>
+            <!-- Ours rather than `title`: the native tooltip waits about a second
+                 before it appears, which is most of why the toolbar reads as guesswork. -->
+            <span class="tool__tip">{{ tool.label }}</span>
           </button>
         }
       </div>
@@ -36,10 +38,10 @@
           type="button"
           [class.tool--wide]="tool.glyph.length > 1"
           [attr.aria-label]="tool.label"
-          [title]="tool.label"
           (click)="run(tool)"
         >
-          {{ tool.glyph }}
+          <span class="tool__glyph">{{ tool.glyph }}</span>
+          <span class="tool__tip">{{ tool.label }}</span>
         </button>
       }
     </div>

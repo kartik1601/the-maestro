@@ -1,8 +1,14 @@
+/**
+ * `overflow: visible` so a tooltip on a button in the last column is not sliced off
+ * at the editor's edge. The clipping it used to provide was only there to keep the
+ * toolbar's corners inside the rounded border — the toolbar now rounds its own two,
+ * and the surface clips its own content because it scrolls.
+ */
 .editor {
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-lg);
   background: var(--surface-raised);
-  overflow: hidden;
+  overflow: visible;
   transition: border-color var(--duration-base) var(--ease-out);
 
   &:focus-within {
@@ -14,14 +20,26 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-1);
+  /* Row gap carries the wrapped rows apart; the column gap separates groups. */
+  gap: var(--space-2) var(--space-1);
   padding: var(--space-2);
   background: var(--surface-sunken);
   border-block-end: 1px solid var(--border-soft);
+  /* Rounds what the editor's clipping used to round for it. */
+  border-start-start-radius: var(--radius-lg);
+  border-start-end-radius: var(--radius-lg);
 
-  /* The toolbar follows the writer down a long document. */
-  position: sticky;
-  inset-block-start: 0;
+  /**
+   * Positioned only so it stacks above the writing surface, which is what lets a
+   * tooltip hang over the first line of text.
+   *
+   * It used to say `sticky`, which never did anything: `overflow: hidden` on .editor
+   * made that element the scrollport, and .editor does not scroll — the surface does.
+   * Now that the clipping is gone, leaving `sticky` in would quietly switch it on and
+   * float the toolbar up against the site's own sticky nav. The surface is capped at
+   * 70vh, so there is nothing tall enough here to need it.
+   */
+  position: relative;
   z-index: 2;
 }
 
@@ -37,6 +55,7 @@
 }
 
 .tool {
+  position: relative;
   display: grid;
   place-items: center;
   min-width: 1.85rem;
@@ -57,10 +76,13 @@
   }
 }
 
+/* A word rather than a symbol. Slightly more breathing room than a glyph needs. */
 .tool--wide {
   font-family: var(--font-sans);
   font-size: var(--text-xs);
   font-weight: 600;
+  padding-inline: var(--space-2);
+  letter-spacing: 0.01em;
 }
 
 .tool--on {
@@ -68,11 +90,57 @@
   color: var(--accent);
 }
 
+/**
+ * The tooltip, ours rather than the browser's.
+ *
+ * `title` waits about a second before it shows, which is long enough that a writer
+ * scanning the toolbar gives up and clicks to find out instead. This appears on the
+ * same frame as the hover. Fixed dark chip in both themes, like the video badges —
+ * it is a floating label over the page, not part of the surface beneath it.
+ */
+.tool__tip {
+  position: absolute;
+  inset-block-start: calc(100% + 0.3rem);
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  z-index: 3;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: rgb(20 20 20 / 92%);
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.tool:hover .tool__tip,
+.tool:focus-visible .tool__tip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Nothing hovers on a touch screen; the words on the buttons carry it there. */
+@media (hover: none) {
+  .tool__tip {
+    display: none;
+  }
+}
+
 /* Sits under the main toolbar, so the two never reflow into each other. */
 .editor__toolbar--table {
-  inset-block-start: auto;
   background: var(--accent-soft);
   border-block-end: 1px solid var(--border-soft);
+  /* Square: the rounded corners belong to the toolbar above it. */
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+  /* Above the main toolbar, so its tooltips are not covered by the row overhead. */
+  z-index: 3;
 }
 
 .editor__group-label {

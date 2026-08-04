@@ -49,13 +49,21 @@ type ToolKind = 'mark' | 'node' | 'align' | 'action';
 
 interface Tool {
   id: string;
+  /** The full description. Shown as the tooltip, and read out as the accessible name. */
   label: string;
+  /** What sits on the button: a symbol where that is unambiguous, a word where it is not. */
   glyph: string;
   kind: ToolKind;
   /** Name TipTap uses for the active check, when it differs from `id`. */
   active?: string;
   attrs?: Record<string, unknown>;
   run: (editor: Editor) => void;
+}
+
+/** A run of related tools, separated from its neighbours by a rule. */
+interface ToolGroup {
+  name: string;
+  tools: Tool[];
 }
 
 /**
@@ -119,46 +127,80 @@ export class RichEditorComponent {
     { id: 'deleteTable', label: 'Delete table', glyph: '🗑', kind: 'action', run: (e) => this.confirmDeleteTable(e) },
   ];
 
-  protected readonly tools: Tool[][] = [
-    [
-      { id: 'bold', label: 'Bold', glyph: 'B', kind: 'mark', run: (e) => e.chain().focus().toggleBold().run() },
-      { id: 'italic', label: 'Italic', glyph: 'I', kind: 'mark', run: (e) => e.chain().focus().toggleItalic().run() },
-      { id: 'underline', label: 'Underline', glyph: 'U', kind: 'mark', run: (e) => e.chain().focus().toggleUnderline().run() },
-      { id: 'strike', label: 'Strikethrough', glyph: 'S', kind: 'mark', run: (e) => e.chain().focus().toggleStrike().run() },
-      { id: 'highlight', label: 'Highlight', glyph: '▨', kind: 'mark', run: (e) => e.chain().focus().toggleHighlight().run() },
-    ],
-    [
-      { id: 'h1', label: 'Heading 1', glyph: 'H1', kind: 'node', active: 'heading', attrs: { level: 1 }, run: (e) => e.chain().focus().toggleHeading({ level: 1 }).run() },
-      { id: 'h2', label: 'Heading 2', glyph: 'H2', kind: 'node', active: 'heading', attrs: { level: 2 }, run: (e) => e.chain().focus().toggleHeading({ level: 2 }).run() },
-      { id: 'h3', label: 'Heading 3', glyph: 'H3', kind: 'node', active: 'heading', attrs: { level: 3 }, run: (e) => e.chain().focus().toggleHeading({ level: 3 }).run() },
-    ],
-    [
-      { id: 'bulletList', label: 'Bulleted list', glyph: '•—', kind: 'node', run: (e) => e.chain().focus().toggleBulletList().run() },
-      { id: 'orderedList', label: 'Numbered list', glyph: '1.', kind: 'node', run: (e) => e.chain().focus().toggleOrderedList().run() },
-      { id: 'blockquote', label: 'Quote', glyph: '❝', kind: 'node', run: (e) => e.chain().focus().toggleBlockquote().run() },
-      { id: 'codeBlock', label: 'Code block', glyph: '{ }', kind: 'node', run: (e) => e.chain().focus().toggleCodeBlock().run() },
-    ],
-    // Glyphs are chosen from ranges that default to text presentation — an emoji
-    // codepoint here would render in colour and break the monochrome toolbar.
-    [
-      { id: 'left', label: 'Align left', glyph: '⇤', kind: 'align', run: (e) => e.chain().focus().setTextAlign('left').run() },
-      { id: 'center', label: 'Align centre', glyph: '⇔', kind: 'align', run: (e) => e.chain().focus().setTextAlign('center').run() },
-      { id: 'right', label: 'Align right', glyph: '⇥', kind: 'align', run: (e) => e.chain().focus().setTextAlign('right').run() },
-    ],
-    [
-      { id: 'link', label: 'Link', glyph: '⧉', kind: 'action', run: (e) => this.promptForLink(e) },
-      { id: 'upload', label: 'Upload an image', glyph: '▣', kind: 'action', run: () => this.pickFile() },
-      { id: 'image', label: 'Image by address', glyph: '▤', kind: 'action', run: (e) => this.promptForImage(e) },
-      { id: 'youtube', label: 'YouTube video', glyph: '▶', kind: 'action', run: () => this.promptForVideo() },
-      { id: 'audio', label: 'Upload audio', glyph: '♪', kind: 'action', run: () => this.pickAudio() },
-      { id: 'table', label: 'Insert a table', glyph: '▦', kind: 'action', run: () => this.promptForTable() },
-      { id: 'horizontalRule', label: 'Divider', glyph: '—', kind: 'action', run: (e) => e.chain().focus().setHorizontalRule().run() },
-    ],
-    [
-      { id: 'undo', label: 'Undo', glyph: '↶', kind: 'action', run: (e) => e.chain().focus().undo().run() },
-      { id: 'redo', label: 'Redo', glyph: '↷', kind: 'action', run: (e) => e.chain().focus().redo().run() },
-      { id: 'clear', label: 'Clear formatting', glyph: '⌫', kind: 'action', run: (e) => e.chain().focus().unsetAllMarks().clearNodes().run() },
-    ],
+  /**
+   * The toolbar, grouped by what each tool does to the writing.
+   *
+   * Two rules decide what a button carries. A symbol is used only where it is already
+   * universal — B, I, H1, a bullet, an undo arrow — and everything else carries a
+   * word, because a glyph nobody recognises is a guess dressed up as an icon. That is
+   * why inserting things reads Image / Audio / Video rather than ▣ ♪ ▶.
+   *
+   * Any glyph that stays must come from a range that defaults to text presentation;
+   * an emoji codepoint would render in colour and break the monochrome toolbar.
+   */
+  protected readonly groups: ToolGroup[] = [
+    {
+      name: 'Text style',
+      tools: [
+        { id: 'bold', label: 'Bold', glyph: 'B', kind: 'mark', run: (e) => e.chain().focus().toggleBold().run() },
+        { id: 'italic', label: 'Italic', glyph: 'I', kind: 'mark', run: (e) => e.chain().focus().toggleItalic().run() },
+        { id: 'underline', label: 'Underline', glyph: 'U', kind: 'mark', run: (e) => e.chain().focus().toggleUnderline().run() },
+        { id: 'strike', label: 'Strikethrough', glyph: 'S', kind: 'mark', run: (e) => e.chain().focus().toggleStrike().run() },
+        { id: 'highlight', label: 'Highlight', glyph: '▨', kind: 'mark', run: (e) => e.chain().focus().toggleHighlight().run() },
+      ],
+    },
+    {
+      name: 'Headings',
+      tools: [
+        { id: 'h1', label: 'Heading 1', glyph: 'H1', kind: 'node', active: 'heading', attrs: { level: 1 }, run: (e) => e.chain().focus().toggleHeading({ level: 1 }).run() },
+        { id: 'h2', label: 'Heading 2', glyph: 'H2', kind: 'node', active: 'heading', attrs: { level: 2 }, run: (e) => e.chain().focus().toggleHeading({ level: 2 }).run() },
+        { id: 'h3', label: 'Heading 3', glyph: 'H3', kind: 'node', active: 'heading', attrs: { level: 3 }, run: (e) => e.chain().focus().toggleHeading({ level: 3 }).run() },
+      ],
+    },
+    {
+      name: 'Paragraph',
+      tools: [
+        { id: 'bulletList', label: 'Bulleted list', glyph: '•—', kind: 'node', run: (e) => e.chain().focus().toggleBulletList().run() },
+        { id: 'orderedList', label: 'Numbered list', glyph: '1.', kind: 'node', run: (e) => e.chain().focus().toggleOrderedList().run() },
+        { id: 'blockquote', label: 'Quote', glyph: '❝', kind: 'node', run: (e) => e.chain().focus().toggleBlockquote().run() },
+        { id: 'codeBlock', label: 'Code block', glyph: '{ }', kind: 'node', run: (e) => e.chain().focus().toggleCodeBlock().run() },
+      ],
+    },
+    {
+      name: 'Alignment',
+      tools: [
+        { id: 'left', label: 'Align left', glyph: '⇤', kind: 'align', run: (e) => e.chain().focus().setTextAlign('left').run() },
+        { id: 'center', label: 'Align centre', glyph: '⇔', kind: 'align', run: (e) => e.chain().focus().setTextAlign('center').run() },
+        { id: 'right', label: 'Align right', glyph: '⇥', kind: 'align', run: (e) => e.chain().focus().setTextAlign('right').run() },
+      ],
+    },
+    // Everything that puts a file or a player on the page, together — the three used
+    // to be scattered between a link, a table and a divider.
+    {
+      name: 'Media',
+      tools: [
+        { id: 'upload', label: 'Upload an image from this device', glyph: 'Image', kind: 'action', run: () => this.pickFile() },
+        { id: 'image', label: 'Image from a web address', glyph: 'Image URL', kind: 'action', run: (e) => this.promptForImage(e) },
+        { id: 'audio', label: 'Upload a recording — MP3, WAV, M4A, AAC, OGG or FLAC', glyph: 'Audio', kind: 'action', run: () => this.pickAudio() },
+        { id: 'youtube', label: 'Embed a YouTube video', glyph: 'Video', kind: 'action', run: () => this.promptForVideo() },
+      ],
+    },
+    {
+      name: 'Insert',
+      tools: [
+        { id: 'link', label: 'Link the selected text', glyph: 'Link', kind: 'action', run: (e) => this.promptForLink(e) },
+        { id: 'table', label: 'Insert a table', glyph: 'Table', kind: 'action', run: () => this.promptForTable() },
+        { id: 'horizontalRule', label: 'Divider line', glyph: 'Divider', kind: 'action', run: (e) => e.chain().focus().setHorizontalRule().run() },
+      ],
+    },
+    {
+      name: 'History',
+      tools: [
+        { id: 'undo', label: 'Undo', glyph: '↶', kind: 'action', run: (e) => e.chain().focus().undo().run() },
+        { id: 'redo', label: 'Redo', glyph: '↷', kind: 'action', run: (e) => e.chain().focus().redo().run() },
+        { id: 'clear', label: 'Clear formatting', glyph: '⌫', kind: 'action', run: (e) => e.chain().focus().unsetAllMarks().clearNodes().run() },
+      ],
+    },
   ];
 
   constructor() {
