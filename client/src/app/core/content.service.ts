@@ -80,6 +80,19 @@ export class ContentService {
   }
 
   /**
+   * Uploads a recording. Audio always goes to object storage, so this fails loudly
+   * when the bucket is not configured rather than falling back the way images do.
+   */
+  uploadAudio(file: File): Observable<{ id: string; url: string; originalName: string }> {
+    const form = new FormData();
+    form.append('audio', file);
+    return this.http.post<{ id: string; url: string; originalName: string }>(
+      `${this.base}/media/audio`,
+      form,
+    );
+  }
+
+  /**
    * Replaces a singleton image — one whose old copy is worthless the moment it is
    * swapped, like the author's portrait. Reuses the same database document instead
    * of leaving the previous upload orphaned; the returned URL carries a version so

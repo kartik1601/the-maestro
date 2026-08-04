@@ -29,6 +29,52 @@
       }
     </header>
 
+    <!-- The author's word about the book, always above the book itself. -->
+    @if (editing()) {
+      <section class="note-edit shell">
+        <h2 class="note-edit__label">About this {{ work.section === 'plays' ? 'play' : 'book' }}</h2>
+        <app-rich-editor
+          [value]="draftNote()"
+          [placeholder]="'Say something about it — why it exists, what it cost…'"
+          (valueChange)="draftNote.set($event)"
+        />
+
+        <div class="note-edit__actions">
+          <button
+            class="btn btn--primary"
+            type="button"
+            [disabled]="!noteDirty() || savingNote()"
+            (click)="saveNote()"
+          >
+            {{ savingNote() ? 'Saving…' : 'Save' }}
+          </button>
+          <button
+            class="btn btn--ghost"
+            type="button"
+            [disabled]="!noteDirty()"
+            (click)="discardNote()"
+          >
+            Discard
+          </button>
+
+          @if (noteSavedAt()) {
+            <span class="note-edit__saved">Saved</span>
+          }
+          @if (noteError()) {
+            <span class="admin-strip__error">{{ noteError() }}</span>
+          }
+        </div>
+      </section>
+    } @else if (work.body) {
+      <div
+        class="reader__note prose shell shell--narrow rise"
+        appYouTubeEmbeds
+        appAudioEmbeds
+        appProseTables
+        [innerHTML]="work.body | authoredHtml"
+      ></div>
+    }
+
     @if (loadingPdf()) {
       <div class="shell reader__loading">Opening…</div>
     } @else if (pdfError()) {

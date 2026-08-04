@@ -30,7 +30,7 @@ never linked from the site and does not appear in this file.
 | Frontend | Angular 22 — standalone components, signals, zoneless |
 | Backend | Express 5 on Node 20+ |
 | Database | MongoDB (Atlas) via Mongoose 9 |
-| Object storage | Cloudflare R2 — uploaded PDFs and images |
+| Object storage | Cloudflare R2 — uploaded PDFs, images and audio |
 | Editor | TipTap 3 |
 | PDF reader | ngx-extended-pdf-viewer (pdf.js) |
 | Styling | SCSS with CSS custom properties |

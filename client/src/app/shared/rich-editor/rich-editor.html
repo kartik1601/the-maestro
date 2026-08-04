@@ -61,4 +61,14 @@
     accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
     (change)="onFileChosen($event)"
   />
+
+  <!-- Extensions as well as MIME types: an .m4a is announced differently by every
+       operating system, and the picker would grey it out on the ones that disagree. -->
+  <input
+    class="visually-hidden"
+    #audioFile
+    type="file"
+    accept="audio/*,.mp3,.wav,.m4a,.mp4a,.aac,.ogg,.oga,.opus,.flac"
+    (change)="onAudioChosen($event)"
+  />
 </div>

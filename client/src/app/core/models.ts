@@ -35,6 +35,11 @@ export interface Work {
   seriesNumber: number | null;
   /** The word in the title that carries the shelf tint. Empty means none. */
   tintWord: string;
+  /**
+   * The first video embedded in the body, derived by the server on save. Songs are
+   * shown by their thumbnail on the shelf, and the body is not in a list response.
+   */
+  videoId: string;
   pinned: boolean;
   published: boolean;
   excerpt: string;

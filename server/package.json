@@ -8,7 +8,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "node --watch src/index.js",
+    "dev": "node --watch-path=./src --watch-path=./.env src/index.js",
     "start": "node src/index.js",
     "seed": "node src/seed/seed.js",
     "admin:create": "node src/scripts/create-admin.js"

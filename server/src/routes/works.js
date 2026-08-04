@@ -3,6 +3,7 @@ import multer from 'multer';
 import { env } from '../config/env.js';
 import { SECTIONS, Work, WORK_LIST_PROJECTION } from '../models/work.js';
 import { attachAdmin, requireAdmin } from '../middleware/auth.js';
+import { unsupported } from '../middleware/error.js';
 import { excerptFrom, readingMinutes, sanitizeRichText } from '../lib/sanitize.js';
 import { slugify } from '../lib/slugify.js';
 import { buildKey, deleteObject, isConfigured, putObject, resolveUrl } from '../storage/blob-store.js';
@@ -17,7 +18,7 @@ const upload = multer({
   limits: { fileSize: env.uploads.maxPdfBytes, files: 1 },
   fileFilter(_req, file, cb) {
     if (file.mimetype !== 'application/pdf') {
-      return cb(new Error('Only PDF files can be uploaded.'));
+      return cb(unsupported('Only PDF files can be uploaded.'));
     }
     cb(null, true);
   },
@@ -282,6 +283,7 @@ function readWorkPayload(body, { partial = false } = {}) {
     payload.body = sanitizeRichText(body.body);
     payload.excerpt = excerptFrom(payload.body);
     payload.readingMinutes = readingMinutes(payload.body);
+    payload.videoId = firstVideoId(payload.body);
   }
 
   if (body.published !== undefined) {
@@ -291,6 +293,17 @@ function readWorkPayload(body, { partial = false } = {}) {
   }
 
   return payload;
+}
+
+/**
+ * The id of the first video in a body, read straight out of the stored markup.
+ *
+ * Safe to do with a regex rather than a parser: the attribute is written by the editor
+ * and has already been through the sanitizer, so by the time this runs the only thing
+ * `data-youtube` can hold is an eleven-character id.
+ */
+function firstVideoId(html) {
+  return String(html ?? '').match(/data-youtube="([\w-]{11})"/)?.[1] ?? '';
 }
 
 /**
@@ -316,6 +329,7 @@ const shapeWork = (work) => ({
   collectionKey: work.collectionKey,
   seriesNumber: work.seriesNumber,
   tintWord: work.tintWord ?? '',
+  videoId: work.videoId ?? '',
   pinned: work.pinned,
   published: work.published,
   excerpt: work.excerpt,

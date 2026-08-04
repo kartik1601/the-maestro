@@ -392,6 +392,61 @@
   overflow: hidden;
 }
 
+/**
+ * The video still on a song card. It is the last thing in the card and carries the
+ * weight the excerpt would have, so it takes the remaining height rather than sitting
+ * against the title — that is what keeps a shelf of songs on one baseline whether or
+ * not their subtitles wrap.
+ */
+.card__still {
+  position: relative;
+  margin-block-start: auto;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface-inset);
+}
+
+/**
+ * YouTube's 480×360 still is 4:3 with the frame letterboxed inside it. Cropping to
+ * 16:9 cuts the bars off rather than showing black edges on a beige card.
+ */
+.card__still-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--duration-slow) var(--ease-out);
+}
+
+.card__still-play {
+  position: absolute;
+  inset-block-end: var(--space-2);
+  inset-inline-start: var(--space-2);
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 1.5rem;
+  border-radius: var(--radius-sm);
+  background: rgb(20 20 20 / 78%);
+  color: #ffffff;
+  font-size: var(--text-xs);
+  line-height: 1;
+  padding-inline-start: 0.1em;
+  transition: background-color var(--duration-base) var(--ease-out);
+}
+
+.card:hover {
+  .card__still-image {
+    transform: scale(1.03);
+  }
+
+  .card__still-play {
+    background: #c0392b;
+  }
+}
+
 .card__meta {
   display: flex;
   flex-wrap: wrap;

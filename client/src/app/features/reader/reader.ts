@@ -1,4 +1,4 @@
-import { Component, HostListener, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { switchMap } from 'rxjs';
 import { NgxExtendedPdfViewerModule, PageViewModeType } from 'ngx-extended-pdf-viewer';
@@ -6,6 +6,11 @@ import { AuthService } from '../../core/auth.service';
 import { ContentService } from '../../core/content.service';
 import { Section, Work } from '../../core/models';
 import { ModalService } from '../../shared/modal/modal.service';
+import { RichEditorComponent } from '../../shared/rich-editor/rich-editor';
+import { AuthoredHtmlPipe } from '../../shared/safe-html.pipe';
+import { ProseTablesDirective } from '../../shared/prose-tables.directive';
+import { YouTubeEmbedsDirective } from '../../shared/rich-editor/youtube-embeds.directive';
+import { AudioEmbedsDirective } from '../../shared/rich-editor/audio-embeds.directive';
 
 
 /**
@@ -18,7 +23,15 @@ import { ModalService } from '../../shared/modal/modal.service';
  */
 @Component({
   selector: 'app-reader',
-  imports: [RouterLink, NgxExtendedPdfViewerModule],
+  imports: [
+    RouterLink,
+    NgxExtendedPdfViewerModule,
+    RichEditorComponent,
+    AuthoredHtmlPipe,
+    YouTubeEmbedsDirective,
+    AudioEmbedsDirective,
+    ProseTablesDirective,
+  ],
   templateUrl: './reader.html',
   styleUrl: './reader.scss',
 })
@@ -43,6 +56,22 @@ export class ReaderComponent {
   protected readonly zoom = signal<'page-fit' | 'page-width'>('page-fit');
   protected readonly uploading = signal(false);
   protected readonly uploadError = signal<string | null>(null);
+
+  /**
+   * The author's note about the book — what the work's `body` means for an uploaded
+   * work. It sits above the reader, so a book can be introduced without that
+   * introduction having to be a page of the PDF.
+   */
+  protected readonly draftNote = signal('');
+  protected readonly savingNote = signal(false);
+  protected readonly noteError = signal<string | null>(null);
+  protected readonly noteSavedAt = signal<Date | null>(null);
+
+  /** Which work's note is currently in the draft; see the effect in the constructor. */
+  private noteLoadedFor: string | null = null;
+
+  protected readonly editing = computed(() => this.auth.isAdmin() && this.auth.editMode());
+  protected readonly noteDirty = computed(() => this.draftNote() !== (this.work()?.body ?? ''));
 
   /**
    * The document bytes, fetched through the authenticated client and handed to the
@@ -84,6 +113,48 @@ export class ReaderComponent {
           this.loading.set(false);
         },
       });
+
+    /**
+     * Load the note when a *different* book arrives, so it cannot leak from one work
+     * onto the next. Keyed on the id rather than on the signal changing at all:
+     * publishing or replacing the PDF also writes `work`, and that must not throw
+     * away a note the author is part-way through writing.
+     */
+    effect(() => {
+      const work = this.work();
+      if (!work || work.id === this.noteLoadedFor) return;
+
+      this.noteLoadedFor = work.id;
+      this.draftNote.set(work.body ?? '');
+      this.noteSavedAt.set(null);
+    });
+  }
+
+  protected saveNote(): void {
+    const work = this.work();
+    if (!work || this.savingNote() || !this.noteDirty()) return;
+
+    this.savingNote.set(true);
+    this.noteError.set(null);
+
+    this.content.saveWork(work.id, { body: this.draftNote() }).subscribe({
+      next: (updated) => {
+        // Only the fields the note touches: the response is shaped from a document
+        // that was read without the PDF buffer, and overwriting `pdf` wholesale would
+        // drop the file out from under the viewer that is currently rendering it.
+        this.work.set({ ...work, body: updated.body ?? '', excerpt: updated.excerpt });
+        this.savingNote.set(false);
+        this.noteSavedAt.set(new Date());
+      },
+      error: () => {
+        this.noteError.set('That note was not saved.');
+        this.savingNote.set(false);
+      },
+    });
+  }
+
+  protected discardNote(): void {
+    this.draftNote.set(this.work()?.body ?? '');
   }
 
   /** Arrow keys turn pages, the way they would in any reader. */

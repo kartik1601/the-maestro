@@ -11,6 +11,7 @@ import { RichEditorComponent } from '../../shared/rich-editor/rich-editor';
 import { AuthoredHtmlPipe } from '../../shared/safe-html.pipe';
 import { ProseTablesDirective } from '../../shared/prose-tables.directive';
 import { YouTubeEmbedsDirective } from '../../shared/rich-editor/youtube-embeds.directive';
+import { AudioEmbedsDirective } from '../../shared/rich-editor/audio-embeds.directive';
 
 /**
  * A single poem or song: read as a page, edited in place by the author without
@@ -26,6 +27,7 @@ import { YouTubeEmbedsDirective } from '../../shared/rich-editor/youtube-embeds.
     RichEditorComponent,
     AuthoredHtmlPipe,
     YouTubeEmbedsDirective,
+    AudioEmbedsDirective,
     ProseTablesDirective,
   ],
   templateUrl: './document.html',

@@ -374,6 +374,44 @@ p {
   font-size: var(--text-sm);
 }
 
+/* ── Embedded audio ────────────────────────────────────────────────────────── */
+
+/**
+ * Global for the same reason the video rules are: these blocks arrive inside authored
+ * HTML through `innerHTML` and never carry Angular's scoping attribute.
+ *
+ * The transport itself is the browser's own. A hand-built player would be a second
+ * design system for one control, and the native one already brings keyboard support,
+ * scrubbing, and the operating system's media keys.
+ */
+.audio {
+  display: grid;
+  gap: var(--space-2);
+  margin-block: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+}
+
+.audio__title {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.audio__player {
+  width: 100%;
+  /* Chrome's control bar is 54px; a shorter box crops the scrubber. */
+  min-height: 2.5rem;
+}
+
+.audio__missing {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
 /**
  * Dropped cap on the opening paragraph. Lives here rather than in a component's
  * stylesheet because these paragraphs arrive through `innerHTML` and never carry

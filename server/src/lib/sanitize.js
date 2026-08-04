@@ -24,8 +24,12 @@ const OPTIONS = {
      * stay stripped, and the player is built from the id at render time. That keeps
      * the one thing an editor can embed to a known host with a validated id, instead
      * of trusting whatever markup arrives.
+     *
+     * Audio follows the same shape: `<div data-audio="/api/media/ID">` rather than an
+     * `<audio>` element, so the player — and the source it is given — is built by our
+     * own code from a reference this site issued.
      */
-    div: ['data-youtube', 'data-title'],
+    div: ['data-youtube', 'data-audio', 'data-title'],
     span: ['style'],
     p: ['style'],
     h1: ['style'], h2: ['style'], h3: ['style'],

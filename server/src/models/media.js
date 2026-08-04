@@ -10,6 +10,13 @@ import mongoose from 'mongoose';
 const mediaSchema = new mongoose.Schema(
   {
     /**
+     * What was uploaded. Images may live in either place; audio is R2 only, because a
+     * recording is too big for a BSON document and needs the byte ranges the bucket
+     * serves. Recorded so a later sweep can tell the two apart without parsing MIME.
+     */
+    kind: { type: String, enum: ['image', 'audio'], default: 'image', index: true },
+
+    /**
      * Where the bytes live. Prose images go to R2 when it is configured; the author's
      * portrait deliberately stays in MongoDB, so the About page keeps working even if
      * the bucket is unreachable.
@@ -32,9 +39,9 @@ const mediaSchema = new mongoose.Schema(
      * no key and accumulate normally, because each one is genuinely referenced by
      * the writing that contains it.
      *
-     * Sparse, so the many null-keyed images do not collide on the unique index.
+     * Uniqueness is enforced by the partial index declared below, not here.
      */
-    key: { type: String, default: null, unique: true, sparse: true },
+    key: { type: String, default: null },
 
     /**
      * Bumped on every replacement. The stored URL carries it as a query parameter,
@@ -44,6 +51,25 @@ const mediaSchema = new mongoose.Schema(
     version: { type: Number, default: 1 },
   },
   { timestamps: true },
+);
+
+/**
+ * One document per key — but only for documents that actually have one.
+ *
+ * This must be a *partial* index rather than a sparse one. `sparse` skips documents
+ * where the field is absent, and `default: null` means it never is: every unkeyed
+ * upload writes `key: null` explicitly, so the first one claimed the unique slot and
+ * every one after it failed with E11000. That is exactly what happened the first time
+ * a second unkeyed file was uploaded.
+ *
+ * Filtering on `$type: 'string'` ignores the nulls no matter how they got there, so
+ * the existing rows did not need rewriting. Named explicitly because the index it
+ * replaces is called `key_1` — a same-named index with different options is a
+ * conflict, not an upgrade. See `db/migrate.js`, which drops the old one.
+ */
+mediaSchema.index(
+  { key: 1 },
+  { unique: true, partialFilterExpression: { key: { $type: 'string' } }, name: 'media_key_unique' },
 );
 
 export const Media = mongoose.model('Media', mediaSchema);

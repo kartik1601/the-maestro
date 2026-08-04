@@ -1,6 +1,7 @@
 import { createApp } from './app.js';
 import { env, ephemeralSecretNames } from './config/env.js';
 import { connectDatabase, disconnectDatabase, isEphemeralDatabase } from './db/connect.js';
+import { runMigrations } from './db/migrate.js';
 import { seedDatabase } from './seed/seed.js';
 import { provisionAdmin } from './services/auth-service.js';
 import { Admin } from './models/admin.js';
@@ -10,6 +11,10 @@ const { mode } = await connectDatabase();
 if (env.seedOnBoot) {
   await seedDatabase({ quiet: true });
 }
+
+// Unlike seeding, this runs against every database: it only derives fields from
+// content that is already there, so it cannot overwrite anything the author wrote.
+await runMigrations();
 
 // Development can provision an admin on first boot, but only from credentials the
 // operator supplied — there are no built-in fallbacks. Production always uses

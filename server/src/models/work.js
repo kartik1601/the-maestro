@@ -39,9 +39,24 @@ const workSchema = new mongoose.Schema(
     /** Unpublished works are visible to the admin only. */
     published: { type: Boolean, default: false },
 
-    /** kind: 'document' — TipTap/ProseMirror HTML, sanitized on write. */
+    /**
+     * TipTap/ProseMirror HTML, sanitized on write.
+     *
+     * For kind: 'document' this is the work itself — the poem or the song. For
+     * kind: 'upload' it is the author's note about the book, shown above the reader;
+     * the writing itself is still the PDF.
+     */
     body: { type: String, default: '' },
     excerpt: { type: String, default: '' },
+
+    /**
+     * The first YouTube video embedded in the body, denormalized on write.
+     *
+     * The Songs shelf shows a thumbnail on every card, and the body is excluded from
+     * list queries on purpose — reading sixteen documents to find sixteen ids would
+     * undo that. Derived, never edited: it is refreshed on every body save.
+     */
+    videoId: { type: String, default: '' },
 
     /**
      * kind: 'upload' — the document itself.

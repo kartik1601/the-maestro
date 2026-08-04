@@ -171,6 +171,38 @@ export class ShelfComponent {
     return tintWord(this.bookName(work), work.tintWord ?? '', position);
   }
 
+  /**
+   * A song with a video is shown as that video: title, subtitle, still. Nothing else
+   * is a fair summary of a song, and a clamped three lines of lyric reads as an
+   * accident. Anything without a video falls back to words, as everywhere else.
+   */
+  protected showsVideo(work: Work): boolean {
+    return this.section() === 'songs' && Boolean(work.videoId);
+  }
+
+  /** hqdefault exists for every video; maxres does not, and a 404 leaves a hole. */
+  protected thumbnail(work: Work): string {
+    return `https://i.ytimg.com/vi/${work.videoId}/hqdefault.jpg`;
+  }
+
+  /**
+   * The excerpt of an uploaded work is its author's note, which belongs above the
+   * reader rather than on the shelf — the card carries the book, not the preface.
+   */
+  protected showsExcerpt(work: Work): boolean {
+    return work.kind !== 'upload' && Boolean(work.excerpt) && !this.showsVideo(work);
+  }
+
+  /**
+   * Whether the foot of the card has anything to say. An empty one is not invisible —
+   * it still claims its padding, and the still above it would sit off-centre.
+   */
+  protected showsMeta(work: Work): boolean {
+    if (this.auth.isAdmin() && !work.published) return true;
+    if (this.showsVideo(work)) return false;
+    return work.kind === 'upload' || Boolean(work.readingMinutes);
+  }
+
   /** True for the one group whose label carries the series treatment. */
   protected isSeriesLabel(key: string): boolean {
     return key === 'uranium-235';

@@ -9,6 +9,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { Highlight } from '@tiptap/extension-highlight';
@@ -19,6 +20,7 @@ import { TextAlign } from '@tiptap/extension-text-align';
 import { TextStyleKit } from '@tiptap/extension-text-style';
 import { ContentService } from '../../core/content.service';
 import { ModalService } from '../modal/modal.service';
+import { AudioBlock } from './audio';
 import { YouTubeBlock, youTubeId } from './youtube';
 
 type ToolKind = 'mark' | 'node' | 'align' | 'action';
@@ -55,6 +57,7 @@ export class RichEditorComponent {
 
   private readonly host = viewChild.required<ElementRef<HTMLElement>>('surface');
   private readonly fileInput = viewChild.required<ElementRef<HTMLInputElement>>('file');
+  private readonly audioInput = viewChild.required<ElementRef<HTMLInputElement>>('audioFile');
   private readonly destroyRef = inject(DestroyRef);
   private readonly content = inject(ContentService);
   private readonly modal = inject(ModalService);
@@ -125,6 +128,7 @@ export class RichEditorComponent {
       { id: 'upload', label: 'Upload an image', glyph: '▣', kind: 'action', run: () => this.pickFile() },
       { id: 'image', label: 'Image by address', glyph: '▤', kind: 'action', run: (e) => this.promptForImage(e) },
       { id: 'youtube', label: 'YouTube video', glyph: '▶', kind: 'action', run: () => this.promptForVideo() },
+      { id: 'audio', label: 'Upload audio', glyph: '♪', kind: 'action', run: () => this.pickAudio() },
       { id: 'table', label: 'Insert a table', glyph: '▦', kind: 'action', run: () => this.promptForTable() },
       { id: 'horizontalRule', label: 'Divider', glyph: '—', kind: 'action', run: (e) => e.chain().focus().setHorizontalRule().run() },
     ],
@@ -185,6 +189,7 @@ export class RichEditorComponent {
         Image.configure({ inline: false }),
         TableKit.configure({ table: { resizable: true } }),
         YouTubeBlock,
+        AudioBlock,
         Placeholder.configure({ placeholder: () => this.placeholder() }),
       ],
       content: this.value(),
@@ -303,6 +308,55 @@ export class RichEditorComponent {
   /** Opens the operating system's file picker. */
   private pickFile(): void {
     this.fileInput().nativeElement.click();
+  }
+
+  private pickAudio(): void {
+    this.audioInput().nativeElement.click();
+  }
+
+  /**
+   * Uploads a recording and inserts a player at the cursor.
+   *
+   * The caption is asked for after the upload rather than before, prefilled with the
+   * file's own name: by then the author knows the file went through, and the common
+   * case is one keystroke — Enter — instead of typing a name that is already there.
+   */
+  protected async onAudioChosen(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file || !this.editor) return;
+
+    input.value = '';
+    this.uploading.set(true);
+    this.uploadError.set(null);
+
+    let uploaded: { url: string };
+    try {
+      uploaded = await firstValueFrom(this.content.uploadAudio(file));
+    } catch (response: unknown) {
+      const message = (response as { error?: { error?: string } })?.error?.error;
+      this.uploadError.set(message ?? 'That recording could not be uploaded.');
+      this.uploading.set(false);
+      return;
+    }
+
+    this.uploading.set(false);
+
+    const title = await this.modal.prompt({
+      title: 'Name this recording',
+      message: 'Shown above the player, and read out by screen readers.',
+      value: file.name.replace(/\.[^.]+$/, ''),
+      confirmLabel: 'Insert',
+    });
+
+    this.editor
+      .chain()
+      .focus()
+      .setAudio({
+        src: this.content.resolveMediaUrl(uploaded.url),
+        title: title?.trim() ?? '',
+      })
+      .run();
   }
 
   /**

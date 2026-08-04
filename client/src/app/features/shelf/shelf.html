@@ -259,27 +259,43 @@
                   <p class="card__subtitle">{{ work.subtitle }}</p>
                 }
 
-                @if (work.excerpt) {
+                <!-- A song that has a video is shown by it: the still stands in for
+                     every line of copy that would otherwise sit here. -->
+                @if (showsVideo(work)) {
+                  <div class="card__still">
+                    <img
+                      class="card__still-image"
+                      [src]="thumbnail(work)"
+                      alt=""
+                      loading="lazy"
+                    />
+                    <span class="card__still-play" aria-hidden="true">▶</span>
+                  </div>
+                } @else if (showsExcerpt(work)) {
                   <p class="card__excerpt">{{ work.excerpt }}</p>
                 }
 
-                <footer class="card__meta">
-                  @if (work.kind === 'upload') {
-                    @if (work.pdf.hasFile) {
-                      <span class="tag tag--ready">
-                        {{ work.pdf.pageCount ? work.pdf.pageCount + ' pages' : 'Ready to read' }}
-                      </span>
-                    } @else {
-                      <span class="tag tag--waiting">Under Ponderation…</span>
+                @if (showsMeta(work)) {
+                  <footer class="card__meta">
+                    @if (!showsVideo(work)) {
+                      @if (work.kind === 'upload') {
+                        @if (work.pdf.hasFile) {
+                          <span class="tag tag--ready">
+                            {{ work.pdf.pageCount ? work.pdf.pageCount + ' pages' : 'Ready to read' }}
+                          </span>
+                        } @else {
+                          <span class="tag tag--waiting">Under Ponderation…</span>
+                        }
+                      } @else if (work.readingMinutes) {
+                        <span class="tag">{{ work.readingMinutes }} min read</span>
+                      }
                     }
-                  } @else if (work.readingMinutes) {
-                    <span class="tag">{{ work.readingMinutes }} min read</span>
-                  }
 
-                  @if (auth.isAdmin() && !work.published) {
-                    <span class="tag tag--draft">Draft</span>
-                  }
-                </footer>
+                    @if (auth.isAdmin() && !work.published) {
+                      <span class="tag tag--draft">Draft</span>
+                    }
+                  </footer>
+                }
               </a>
             </li>
           }

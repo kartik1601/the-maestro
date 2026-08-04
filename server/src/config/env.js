@@ -122,6 +122,18 @@ export const env = {
 
     // Images sit inside prose, so the ceiling is about page weight rather than BSON.
     maxImageBytes: int(process.env.MAX_IMAGE_BYTES, 8 * 1024 * 1024),
+
+    /**
+     * Audio never touches MongoDB — it goes to R2 or it is refused — so this ceiling
+     * is about upload time and bucket cost, not the BSON limit. 100 MB covers a long
+     * recording at a high bitrate; the author has files that would not fit in less.
+     *
+     * **Do not raise this past 100 MB without checking what sits in front of the API.**
+     * Cloudflare's free plan refuses a request body larger than 100 MB at the edge,
+     * and a proxied `api.` record would 413 the upload before Express ever sees it —
+     * so the real ceiling is this number or the proxy's, whichever is lower.
+     */
+    maxAudioBytes: int(process.env.MAX_AUDIO_BYTES, 100 * 1024 * 1024),
   },
 
   /**

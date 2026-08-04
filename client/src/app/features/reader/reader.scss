@@ -208,6 +208,47 @@
   color: var(--text-muted);
 }
 
+/* ── The author's note ─────────────────────────────────────────────────────── */
+
+/**
+ * Set at the reading measure rather than the reader's full width: it is prose, and
+ * prose that runs as wide as a landscape page is prose nobody finishes. The rule
+ * beneath it is what separates the author's voice from the book's.
+ */
+.reader__note {
+  padding-block: var(--space-5) var(--space-4);
+  border-block-end: 1px solid var(--border-soft);
+}
+
+.note-edit {
+  display: grid;
+  gap: var(--space-3);
+  margin-block-start: var(--space-4);
+  padding: var(--space-4);
+  border: 1px dashed var(--border-medium);
+  border-radius: var(--radius-lg);
+}
+
+.note-edit__label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.note-edit__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.note-edit__saved {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
 /* ── Admin strip ───────────────────────────────────────────────────────────── */
 
 .admin-strip {
