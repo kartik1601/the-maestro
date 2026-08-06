@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "node --watch-path=./src --watch-path=./.env src/index.js",
     "start": "node src/index.js",
+    "test": "node --test --import ./test/setup.js \"test/**/*.test.js\"",
     "seed": "node src/seed/seed.js",
     "admin:create": "node src/scripts/create-admin.js"
   },

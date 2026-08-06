@@ -157,12 +157,13 @@ CLAUDE.local.md
 .angular/
 
 # Angular CLI scaffolding that this project does not use. Left on disk so the CLI
-# stays happy, kept out of the repository because neither is ours:
-#   - client/README.md is the generator's boilerplate; the root README is the real one
-#   - app.spec.ts is the generated example test, written against the placeholder
-#     component that was replaced on day one. It fails, and there is no suite yet.
+# stays happy, kept out of the repository because it is not ours: client/README.md
+# is the generator's boilerplate, and the root README is the real one.
+#
+# app.spec.ts used to be listed here too — it was the generated example test, written
+# against the placeholder component replaced on day one, and it failed. It has since
+# been rewritten against the real masthead and belongs in the suite.
 client/README.md
-client/src/app/app.spec.ts
 
 # Editors
 .idea/

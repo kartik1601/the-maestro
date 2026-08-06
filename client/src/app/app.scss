@@ -398,6 +398,12 @@
   }
 }
 
+/* The GitHub mark is an icon, not running text — the underline every other link
+   carries has no business under it. Its ink already comes from .icon-btn. */
+a.icon-btn {
+  text-decoration: none;
+}
+
 .nav-toggle {
   display: none;
 }

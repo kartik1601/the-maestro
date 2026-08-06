@@ -19,6 +19,7 @@ export class App {
   protected readonly theme = inject(ThemeService);
 
   protected readonly sections = SECTION_META;
+  protected readonly repositoryUrl = 'https://github.com/kartik1601/the-maestro';
   protected readonly menuOpen = signal(false);
   protected readonly scrolled = signal(false);
   protected readonly reactionOpen = signal(false);
