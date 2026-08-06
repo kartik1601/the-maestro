@@ -72,9 +72,7 @@
 
       <div class="field">
         <span class="field__label">Sub-sections</span>
-        <p class="field__hint">
-          The heading above each group of works, and the note beside it.
-        </p>
+        <p class="field__hint">The heading above each group of works, and the note beside it.</p>
 
         @for (row of draftCollections(); track row.key) {
           <div class="collection-edit">
@@ -143,12 +141,11 @@
               }
               <!-- Pieces kept on one line: a newline between them would render as a
                    space and split "five?" into "five ?". -->
-              <span [class.dialogue__line--unattributed]="!exchange.speaker"
-                >@for (part of lineParts(exchange.line); track $index) {<span
-                  [class.dialogue__mark]="part.mark"
-                  >{{ part.text }}</span
-                >}</span
-              >
+              <span [class.dialogue__line--unattributed]="!exchange.speaker">
+                @for (part of lineParts(exchange.line); track $index) {
+                  <span [class.dialogue__mark]="part.mark">{{ part.text }}</span>
+                }
+              </span>
             </p>
           }
           @if (page()?.dialogueSource) {
@@ -171,8 +168,30 @@
     <p class="notice">Nothing here yet.</p>
   } @else {
     @for (group of groups(); track group.key) {
-      <section class="group">
+      <section class="group" [class.group--collapsible]="collapsible()">
         <header class="group__head" [class.group__head--series]="isSeriesLabel(group.key)">
+          <!--
+            On a phone the whole heading is the control that opens its own shelf. The
+            button is laid over the head rather than wrapped around it: a heading and a
+            note are not allowed inside a button, and the h2 has to stay a real heading.
+          -->
+          @if (collapsible()) {
+            <button
+              class="group__toggle"
+              type="button"
+              [attr.aria-label]="group.label"
+              [attr.aria-expanded]="isExpanded(group.key)"
+              [attr.aria-controls]="'shelf-group-' + group.key"
+              (click)="toggleGroup(group.key)"
+            >
+              <span
+                class="group__chevron"
+                [class.group__chevron--open]="isExpanded(group.key)"
+                aria-hidden="true"
+              ></span>
+            </button>
+          }
+
           @if (isSeriesLabel(group.key)) {
             <!-- The series mark: lowercase prefix, oversized glossy-red 235. -->
             <h2 class="group__title group__title--series">
@@ -188,141 +207,184 @@
           <span class="group__count">{{ group.works.length }}</span>
 
           @if (editing() && canAddWorks()) {
-            <button class="btn btn--ghost group__add" type="button" (click)="startAdding(group.key)">
+            <button
+              class="btn btn--ghost group__add"
+              type="button"
+              (click)="startAdding(group.key)"
+            >
               Add
             </button>
           }
         </header>
 
-        <!-- Composer for a new poem or song, filed into this sub-section. -->
-        @if (addingTo() === group.key) {
-          <div class="new-work">
-            <input
-              class="input"
-              type="text"
-              placeholder="Title"
-              [ngModel]="newWorkTitle()"
-              (ngModelChange)="newWorkTitle.set($event)"
-            />
-            <input
-              class="input"
-              type="text"
-              placeholder="Subtitle (optional)"
-              [ngModel]="newWorkSubtitle()"
-              (ngModelChange)="newWorkSubtitle.set($event)"
-            />
-            <div class="new-work__actions">
-              <button
-                class="btn btn--primary"
-                type="button"
-                [disabled]="!newWorkTitle().trim() || creating()"
-                (click)="createWork(group.key)"
-              >
-                {{ creating() ? 'Creating…' : 'Create' }}
-              </button>
-              <button class="btn btn--ghost" type="button" (click)="cancelAdding()">Cancel</button>
-            </div>
-            <p class="field__hint">
-              Created as a draft. Open it to write, then publish when it is ready.
-            </p>
-          </div>
-        }
+        <div
+          class="group__panel"
+          [class.group__panel--open]="isExpanded(group.key)"
+          [id]="'shelf-group-' + group.key"
+        >
+          <div class="group__panel-inner">
+            <!-- Composer for a new poem or song, filed into this sub-section. -->
+            @if (addingTo() === group.key) {
+              <div class="new-work">
+                <input
+                  class="input"
+                  type="text"
+                  placeholder="Title"
+                  [ngModel]="newWorkTitle()"
+                  (ngModelChange)="newWorkTitle.set($event)"
+                />
+                <input
+                  class="input"
+                  type="text"
+                  placeholder="Subtitle (optional)"
+                  [ngModel]="newWorkSubtitle()"
+                  (ngModelChange)="newWorkSubtitle.set($event)"
+                />
+                <div class="new-work__actions">
+                  <button
+                    class="btn btn--primary"
+                    type="button"
+                    [disabled]="!newWorkTitle().trim() || creating()"
+                    (click)="createWork(group.key)"
+                  >
+                    {{ creating() ? 'Creating…' : 'Create' }}
+                  </button>
+                  <button class="btn btn--ghost" type="button" (click)="cancelAdding()">
+                    Cancel
+                  </button>
+                </div>
+                <p class="field__hint">
+                  Created as a draft. Open it to write, then publish when it is ready.
+                </p>
+              </div>
+            }
 
-        @if (group.works.length === 0) {
-          <p class="group__empty">Nothing filed here yet.</p>
-        }
+            @if (group.works.length === 0) {
+              <p class="group__empty">Nothing filed here yet.</p>
+            }
 
-        <ul class="grid stagger">
-          <!-- cardIndex drives which colour this card's tinted syllable takes. -->
-          @for (work of group.works; track work.id; let cardIndex = $index) {
-            <li>
-              <a class="card" [routerLink]="['/', work.section, work.slug]">
-                @if (work.seriesNumber) {
-                  <span class="card__number">{{ work.seriesNumber }}</span>
-                }
-
-                <h3 class="card__title">
-                  @if (tintsTitles()) {
-                    @for (piece of tinted(work, cardIndex); track $index) {
-                      <span
-                        [class.card__syllable--green]="piece.tint === 'green'"
-                        [class.card__syllable--red]="piece.tint === 'red'"
-                        >{{ piece.text }}</span
-                      >
+            <ul class="grid stagger">
+              <!-- cardIndex drives which colour this card's tinted syllable takes. -->
+              @for (work of group.works; track work.id; let cardIndex = $index) {
+                <li>
+                  <a class="card" [routerLink]="['/', work.section, work.slug]">
+                    @if (work.seriesNumber) {
+                      <span class="card__number">{{ work.seriesNumber }}</span>
                     }
-                  } @else {
-                    {{ work.title }}
-                  }
-                </h3>
 
-                @if (work.subtitle) {
-                  <p class="card__subtitle">{{ work.subtitle }}</p>
-                }
-
-                <!-- A song that has a video is shown by it: the still stands in for
-                     every line of copy that would otherwise sit here. -->
-                @if (showsVideo(work)) {
-                  <div class="card__still">
-                    <img
-                      class="card__still-image"
-                      [src]="thumbnail(work)"
-                      alt=""
-                      loading="lazy"
-                    />
-                    <span class="card__still-play" aria-hidden="true">▶</span>
-                  </div>
-                } @else if (showsExcerpt(work)) {
-                  <p class="card__excerpt">{{ work.excerpt }}</p>
-                }
-
-                @if (showsMeta(work)) {
-                  <footer class="card__meta">
-                    @if (!showsVideo(work)) {
-                      @if (work.kind === 'upload') {
-                        @if (work.pdf.hasFile) {
-                          <span class="tag tag--ready">
-                            {{ work.pdf.pageCount ? work.pdf.pageCount + ' pages' : 'Ready to read' }}
-                          </span>
-                        } @else {
-                          <span class="tag tag--waiting">Under Ponderation…</span>
+                    <h3 class="card__title">
+                      @if (tintsTitles()) {
+                        @for (piece of tinted(work, cardIndex); track $index) {
+                          <span
+                            [class.card__syllable--green]="piece.tint === 'green'"
+                            [class.card__syllable--red]="piece.tint === 'red'"
+                            >{{ piece.text }}</span
+                          >
                         }
-                      } @else if (work.readingMinutes) {
-                        <span class="tag">{{ work.readingMinutes }} min read</span>
+                      } @else {
+                        {{ work.title }}
                       }
+                    </h3>
+
+                    @if (work.subtitle) {
+                      <p class="card__subtitle">{{ work.subtitle }}</p>
                     }
 
-                    @if (auth.isAdmin() && !work.published) {
-                      <span class="tag tag--draft">Draft</span>
+                    <!-- A song that has a video is shown by it: the still stands in for
+                         every line of copy that would otherwise sit here. -->
+                    @if (showsVideo(work)) {
+                      <div class="card__still">
+                        <img
+                          class="card__still-image"
+                          [src]="thumbnail(work)"
+                          alt=""
+                          loading="lazy"
+                        />
+                        <span class="card__still-play" aria-hidden="true">▶</span>
+                      </div>
+                    } @else if (showsExcerpt(work)) {
+                      <p class="card__excerpt">{{ work.excerpt }}</p>
                     }
-                  </footer>
-                }
-              </a>
-            </li>
-          }
-        </ul>
+
+                    @if (showsMeta(work)) {
+                      <footer class="card__meta">
+                        @if (!showsVideo(work)) {
+                          @if (work.kind === 'upload') {
+                            @if (work.pdf.hasFile) {
+                              <span class="tag tag--ready">
+                                {{
+                                  work.pdf.pageCount
+                                    ? work.pdf.pageCount + ' pages'
+                                    : 'Ready to read'
+                                }}
+                              </span>
+                            } @else {
+                              <span class="tag tag--waiting">Under Ponderation…</span>
+                            }
+                          } @else if (work.readingMinutes) {
+                            <span class="tag">{{ work.readingMinutes }} min read</span>
+                          }
+                        }
+
+                        @if (auth.isAdmin() && !work.published) {
+                          <span class="tag tag--draft">Draft</span>
+                        }
+                      </footer>
+                    }
+                  </a>
+                </li>
+              }
+            </ul>
+          </div>
+        </div>
       </section>
     }
 
     @if (ungrouped().length > 0) {
-      <section class="group">
+      <section class="group" [class.group--collapsible]="collapsible()">
         <header class="group__head">
+          @if (collapsible()) {
+            <button
+              class="group__toggle"
+              type="button"
+              aria-label="Unfiled"
+              [attr.aria-expanded]="isExpanded('unfiled')"
+              aria-controls="shelf-group-unfiled"
+              (click)="toggleGroup('unfiled')"
+            >
+              <span
+                class="group__chevron"
+                [class.group__chevron--open]="isExpanded('unfiled')"
+                aria-hidden="true"
+              ></span>
+            </button>
+          }
+
           <h2 class="group__title">Unfiled</h2>
           <p class="group__note">Not yet placed in a collection</p>
           <span class="group__count">{{ ungrouped().length }}</span>
         </header>
 
-        <ul class="grid stagger">
-          @for (work of ungrouped(); track work.id) {
-            <li>
-              <a class="card" [routerLink]="['/', work.section, work.slug]">
-                <h3 class="card__title">{{ work.title }}</h3>
-                @if (work.subtitle) {
-                  <p class="card__subtitle">{{ work.subtitle }}</p>
-                }
-              </a>
-            </li>
-          }
-        </ul>
+        <div
+          class="group__panel"
+          [class.group__panel--open]="isExpanded('unfiled')"
+          id="shelf-group-unfiled"
+        >
+          <div class="group__panel-inner">
+            <ul class="grid stagger">
+              @for (work of ungrouped(); track work.id) {
+                <li>
+                  <a class="card" [routerLink]="['/', work.section, work.slug]">
+                    <h3 class="card__title">{{ work.title }}</h3>
+                    @if (work.subtitle) {
+                      <p class="card__subtitle">{{ work.subtitle }}</p>
+                    }
+                  </a>
+                </li>
+              }
+            </ul>
+          </div>
+        </div>
       </section>
     }
   }

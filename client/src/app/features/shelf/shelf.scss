@@ -122,7 +122,9 @@
 
 /* ── Adding a work ─────────────────────────────────────────────────────────── */
 
+/* Lifted clear of the toggle laid over the head, which would otherwise swallow the tap. */
 .group__add {
+  position: relative;
   margin-inline-start: var(--space-3);
 }
 
@@ -180,6 +182,79 @@
   padding-block-end: var(--space-3);
   margin-block-end: var(--space-5);
   border-block-end: 1px solid var(--border-soft);
+}
+
+/**
+ * ── Collapsing on a phone ───────────────────────────────────────────────────
+ *
+ * Only poems and songs carry `.group--collapsible`, and only below the phone width —
+ * the component decides both, so nothing here needs a media query. See shelf.ts.
+ */
+.group--collapsible {
+  .group__head {
+    position: relative;
+    /* The gutter the chevron sits in, kept clear of the count. */
+    padding-inline-end: var(--space-6);
+  }
+
+  /* Closed heads read as a list; the wide-screen gap would be a gulf between names. */
+  & + .group--collapsible {
+    margin-block-start: var(--space-5);
+  }
+}
+
+/**
+ * Laid over the whole head rather than wrapped around it: a heading and a note cannot
+ * live inside a button, and the h2 has to stay a heading for anyone navigating by them.
+ * Its label carries the sub-section name — see the template. The rest of the button's
+ * appearance comes from the reset in styles.scss.
+ */
+.group__toggle {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+}
+
+.group__chevron {
+  position: absolute;
+  /* On the middle of the title's first line, whatever the head wraps to below it. */
+  inset: 0.7rem 0 auto auto;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-inline-end: 2px solid var(--text-muted);
+  border-block-end: 2px solid var(--text-muted);
+  transform: rotate(45deg);
+  transition: transform var(--duration-base) var(--ease-out);
+}
+
+.group__chevron--open {
+  transform: rotate(-135deg);
+}
+
+/**
+ * The collapse itself: 0fr → 1fr animates to the content's own height, which a
+ * max-height cannot do without a guessed number that clips a long shelf.
+ */
+.group--collapsible .group__panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--duration-slow) var(--ease-in-out);
+}
+
+.group--collapsible .group__panel--open {
+  grid-template-rows: 1fr;
+}
+
+.group--collapsible .group__panel-inner {
+  overflow: hidden;
+  /* Hidden rather than merely clipped, so a closed shelf is out of the tab order. */
+  visibility: hidden;
+  transition: visibility var(--duration-slow) step-end;
+}
+
+.group--collapsible .group__panel--open .group__panel-inner {
+  visibility: visible;
+  transition: visibility 0s;
 }
 
 /* Accent hint on the collection name — Rains of Love, KK. */

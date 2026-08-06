@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -21,6 +21,9 @@ interface Group {
 /** Sections whose works are written on the page rather than uploaded as a PDF. */
 const DOCUMENT_SECTIONS: Section[] = ['poems', 'songs'];
 
+/** The phone breakpoint the shelf styles use — kept in step with shelf.scss. */
+const PHONE = '(max-width: 40rem)';
+
 @Component({
   selector: 'app-shelf',
   imports: [RouterLink, FormsModule, RefreshPillComponent],
@@ -31,6 +34,7 @@ export class ShelfComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly content = inject(ContentService);
   private readonly modal = inject(ModalService);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly auth = inject(AuthService);
   protected readonly sync = inject(SyncService);
 
@@ -46,6 +50,12 @@ export class ShelfComponent {
   protected readonly draftDialogue = signal<DialogueLine[]>([]);
   protected readonly draftDialogueSource = signal('');
   protected readonly draftCollections = signal<WorkCollection[]>([]);
+
+  /** Tracks the phone width live, so a rotated tablet answers for where it is now. */
+  private readonly narrow = signal(matchMedia(PHONE).matches);
+
+  /** Which sub-sections are open. Everything starts closed — see `collapsible`. */
+  private readonly expandedGroups = signal<ReadonlySet<string>>(new Set());
 
   /** New-work composer state, keyed by the sub-section it will be filed into. */
   protected readonly addingTo = signal<string | null>(null);
@@ -87,6 +97,17 @@ export class ShelfComponent {
   protected readonly canAddWorks = computed(() => DOCUMENT_SECTIONS.includes(this.section()));
 
   /**
+   * Poems and songs are shelves of many small things, and on a phone the grid runs to a
+   * scroll long enough that the sub-section names stop being findable. There the shelf
+   * arrives as those names alone and each opens on a tap. Novels, plays and novelettes
+   * are short lists of large works, so they stay laid out. On any wider screen every
+   * section is open and the heading is not a control.
+   */
+  protected readonly collapsible = computed(
+    () => this.narrow() && DOCUMENT_SECTIONS.includes(this.section()),
+  );
+
+  /**
    * Anything whose collectionKey does not match a configured group still needs a
    * home, otherwise a work the author re-files would silently vanish from the site.
    */
@@ -109,11 +130,17 @@ export class ShelfComponent {
   });
 
   constructor() {
+    const phone = matchMedia(PHONE);
+    const onResize = (event: MediaQueryListEvent) => this.narrow.set(event.matches);
+    phone.addEventListener('change', onResize);
+    this.destroyRef.onDestroy(() => phone.removeEventListener('change', onResize));
+
     this.route.data
       .pipe(
         switchMap((data) => {
           const section = data['section'] as Section;
           this.loading.set(true);
+          this.expandedGroups.set(new Set());
           this.sync.watch({ page: section, works: true });
 
           return forkJoin({
@@ -203,6 +230,21 @@ export class ShelfComponent {
     return work.kind === 'upload' || Boolean(work.readingMinutes);
   }
 
+  // ── Collapsing ─────────────────────────────────────────────────────────────
+
+  /** Open whenever the shelf is not collapsible, so the wide layout ignores all this. */
+  protected isExpanded(key: string): boolean {
+    return !this.collapsible() || this.expandedGroups().has(key);
+  }
+
+  protected toggleGroup(key: string): void {
+    this.expandedGroups.update((open) => {
+      const next = new Set(open);
+      if (!next.delete(key)) next.add(key);
+      return next;
+    });
+  }
+
   /** True for the one group whose label carries the series treatment. */
   protected isSeriesLabel(key: string): boolean {
     return key === 'uranium-235';
@@ -276,7 +318,12 @@ export class ShelfComponent {
   protected addCollection(): void {
     this.draftCollections.update((rows) => [
       ...rows,
-      { key: `section-${Date.now().toString(36)}`, label: 'New sub-section', note: '', sortOrder: rows.length },
+      {
+        key: `section-${Date.now().toString(36)}`,
+        label: 'New sub-section',
+        note: '',
+        sortOrder: rows.length,
+      },
     ]);
   }
 
@@ -304,6 +351,8 @@ export class ShelfComponent {
   // ── Adding works ───────────────────────────────────────────────────────────
 
   protected startAdding(collectionKey: string): void {
+    // The composer lives inside the panel, so a collapsed sub-section has to open with it.
+    this.expandedGroups.update((open) => new Set(open).add(collectionKey));
     this.addingTo.set(collectionKey);
     this.newWorkTitle.set('');
     this.newWorkSubtitle.set('');
