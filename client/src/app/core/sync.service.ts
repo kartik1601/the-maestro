@@ -3,6 +3,8 @@ import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 import { environment } from '../../environments/environment';
 
 interface VersionSnapshot {
+  /** 'author' or 'reader' — which of the two the server counted this answer for. */
+  audience: string;
   posts: string | null;
   /** Keyed by section, so an edit in Songs is not news to someone reading Poems. */
   works: Record<string, string | null>;
@@ -81,9 +83,17 @@ export class SyncService {
       next: (snapshot) => {
         this.latest = snapshot;
 
-        // The very first response establishes the baseline rather than reporting a
-        // change; there is nothing to compare against yet.
-        if (!this.baseline) {
+        /**
+         * The very first response establishes the baseline rather than reporting a
+         * change; there is nothing to compare against yet.
+         *
+         * So does the first one after the session changes. The author's snapshot
+         * counts drafts and a reader's does not, so the two are different views of an
+         * unchanged archive — signing in, signing out or a token quietly lapsing would
+         * otherwise read as "the author has edited this" and put the pill up over a
+         * page nobody has touched.
+         */
+        if (!this.baseline || this.baseline.audience !== snapshot.audience) {
           this.baseline = snapshot;
           return;
         }

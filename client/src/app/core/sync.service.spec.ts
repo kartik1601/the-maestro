@@ -8,6 +8,7 @@ const VERSION = `${environment.apiBase}/version`;
 const POLL_MS = 20_000;
 
 interface Snapshot {
+  audience: string;
   posts: string | null;
   works: Record<string, string | null>;
   pages: Record<string, string | null>;
@@ -15,6 +16,7 @@ interface Snapshot {
 }
 
 const snapshot = (overrides: Partial<Snapshot> = {}): Snapshot => ({
+  audience: 'reader',
   posts: '2026-01-01T00:00:00.000Z',
   works: { poems: '2026-01-01T00:00:00.000Z', songs: '2026-01-01T00:00:00.000Z' },
   pages: { poems: '2026-01-01T00:00:00.000Z', novels: '2026-01-01T00:00:00.000Z' },
@@ -173,6 +175,23 @@ describe('SyncService', () => {
     sync.stop();
     vi.advanceTimersByTime(POLL_MS * 3);
     http.expectNone(VERSION);
+  });
+
+  it('re-baselines when the session changes rather than calling it an edit', () => {
+    sync.watch({ works: 'poems' });
+    settleBaseline(snapshot({ audience: 'reader', works: { poems: 'reader sees this' } }));
+
+    // Signing in: the same archive, counted with the author's drafts included.
+    vi.advanceTimersByTime(POLL_MS);
+    http
+      .expectOne(VERSION)
+      .flush(snapshot({ audience: 'author', works: { poems: 'author sees this' } }));
+    expect(sync.stale()).toBe(false);
+
+    // And an edit after that is still reported, against the new baseline.
+    vi.advanceTimersByTime(POLL_MS);
+    http.expectOne(VERSION).flush(snapshot({ audience: 'author', works: { poems: 'moved on' } }));
+    expect(sync.stale()).toBe(true);
   });
 
   it('says nothing to the reader about a failed poll', () => {

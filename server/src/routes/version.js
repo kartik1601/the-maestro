@@ -39,6 +39,14 @@ export function versionRouter() {
 
       res.set('Cache-Control', 'no-store');
       res.json({
+        /**
+         * Who this answer was computed for. Since the filter above decides what is
+         * counted, two snapshots taken either side of a session change are not
+         * comparable — the author's includes drafts and a reader's does not, and the
+         * difference between them is a change of session, not a change of content.
+         * The client re-baselines when this moves rather than reporting an edit.
+         */
+        audience: req.admin ? 'author' : 'reader',
         posts,
         works,
         pages: Object.fromEntries(

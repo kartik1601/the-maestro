@@ -117,7 +117,13 @@ describe('ShelfComponent', () => {
     http.expectOne(`${API}/pages/${section}`).flush(page(groups));
     for (const request of http.match(`${API}/version`)) {
       // Every section is present in a real answer, null included — see version.js.
-      request.flush({ posts: null, works: { [section]: null }, pages: {}, checkedAt: '' });
+      request.flush({
+        audience: 'reader',
+        posts: null,
+        works: { [section]: null },
+        pages: {},
+        checkedAt: '',
+      });
     }
   }
 
@@ -349,7 +355,7 @@ describe('ShelfComponent', () => {
       document.dispatchEvent(new Event('visibilitychange'));
       http
         .expectOne(`${API}/version`)
-        .flush({ posts: null, works: { poems }, pages: {}, checkedAt: '' });
+        .flush({ audience: 'reader', posts: null, works: { poems }, pages: {}, checkedAt: '' });
       await fixture.whenStable();
     };
 

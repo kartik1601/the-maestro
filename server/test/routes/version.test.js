@@ -131,6 +131,11 @@ describe('GET /api/version', () => {
     });
   });
 
+  it('names who the answer was counted for, so the client can tell a session change from an edit', async () => {
+    assert.equal((await version()).body.audience, 'reader');
+    assert.equal((await versionAsAuthor()).body.audience, 'author');
+  });
+
   it('stamps when it answered', async () => {
     const { body } = await version();
     assert.ok(!Number.isNaN(Date.parse(body.checkedAt)));
