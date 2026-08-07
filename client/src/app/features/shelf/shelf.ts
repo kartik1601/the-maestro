@@ -1,4 +1,11 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import {
+  CdkDrag,
+  CdkDragDrop,
+  CdkDragHandle,
+  CdkDropList,
+  moveItemInArray,
+} from '@angular/cdk/drag-drop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -26,7 +33,7 @@ const PHONE = '(max-width: 40rem)';
 
 @Component({
   selector: 'app-shelf',
-  imports: [RouterLink, FormsModule, RefreshPillComponent],
+  imports: [RouterLink, FormsModule, RefreshPillComponent, CdkDropList, CdkDrag, CdkDragHandle],
   templateUrl: './shelf.html',
   styleUrl: './shelf.scss',
 })
@@ -41,6 +48,8 @@ export class ShelfComponent {
   protected readonly loading = signal(true);
   protected readonly refreshing = signal(false);
   protected readonly error = signal<string | null>(null);
+  /** Kept apart from `error`: a failed reorder must not take the shelf off the page. */
+  protected readonly orderError = signal<string | null>(null);
   protected readonly works = signal<Work[]>([]);
   protected readonly page = signal<Page | null>(null);
 
@@ -95,6 +104,13 @@ export class ShelfComponent {
   );
 
   protected readonly canAddWorks = computed(() => DOCUMENT_SECTIONS.includes(this.section()));
+
+  /**
+   * Poems and songs have no order of their own — no series number, no reason for
+   * alphabetical — so the author places them by hand. The uploaded sections already
+   * have an order that means something and are left alone.
+   */
+  protected readonly canReorder = computed(() => this.editing() && this.canAddWorks());
 
   /**
    * Poems and songs are shelves of many small things, and on a phone the grid runs to a
@@ -348,6 +364,40 @@ export class ShelfComponent {
     this.draftCollections.update((rows) => rows.filter((_, i) => i !== index));
   }
 
+  // ── Ordering works ─────────────────────────────────────────────────────────
+
+  /**
+   * Cards move within their own sub-section only; dragging one into another group
+   * would be a re-filing, which is a different decision from placing it.
+   *
+   * The new order is shown at once and written behind it — the author is arranging a
+   * shelf, and a card that snaps back while the request is in flight would read as the
+   * drag having failed. A failed write says so and restores what the server still holds.
+   */
+  protected dropWork(group: Group, event: CdkDragDrop<Work[]>): void {
+    if (event.previousIndex === event.currentIndex) return;
+
+    const before = this.works();
+    const ordered = [...group.works];
+    moveItemInArray(ordered, event.previousIndex, event.currentIndex);
+
+    // Spliced back over the group's own slots: `groups` filters `works` in place, so the
+    // positions these cards occupy in the full list are exactly the ones they came from.
+    const queue = ordered.map((work, index) => ({ ...work, sortOrder: index }));
+    this.works.set(
+      before.map((work) => (work.collectionKey === group.key ? queue.shift()! : work)),
+    );
+
+    this.orderError.set(null);
+    this.content.reorderWorks(ordered.map((work) => work.id)).subscribe({
+      next: () => this.sync.acknowledge(),
+      error: () => {
+        this.works.set(before);
+        this.orderError.set('That order was not saved.');
+      },
+    });
+  }
+
   // ── Adding works ───────────────────────────────────────────────────────────
 
   protected startAdding(collectionKey: string): void {
@@ -374,6 +424,9 @@ export class ShelfComponent {
         title,
         subtitle: this.newWorkSubtitle().trim(),
         collectionKey,
+        // Filed at the end of its sub-section rather than at 0, which would drop a new
+        // draft on top of a shelf the author has already put in order.
+        sortOrder: this.works().filter((work) => work.collectionKey === collectionKey).length,
         // Created as a draft: it exists to be written into, not to be read yet.
         published: false,
       })

@@ -595,3 +595,68 @@ p {
   scrollbar-width: thin;
   scrollbar-color: var(--border-strong) transparent;
 }
+
+/* ── Dragging ──────────────────────────────────────────────────────────────── */
+
+/**
+ * Shared by every list the author can reorder. Global because the CDK lifts the
+ * preview out of the component and onto the body while the drag is in flight.
+ */
+
+/**
+ * The grip is the only draggable part of a card, so the card itself stays a link and
+ * a click still opens the work. It sits in the corner the title does not reach into.
+ */
+.drag-grip {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: var(--space-2);
+  inset-inline-end: var(--space-2);
+  display: grid;
+  place-items: center;
+  inline-size: 2rem;
+  block-size: 2rem;
+  padding: 0;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: 1;
+  cursor: grab;
+  transition:
+    border-color var(--duration-base) var(--ease-out),
+    color var(--duration-base) var(--ease-out);
+
+  &:hover {
+    border-color: var(--accent-calm);
+    color: var(--text-primary);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+/** The gap the card left behind: an outline holding the space it will drop into. */
+.cdk-drag-placeholder {
+  opacity: 0.4;
+
+  .card {
+    border-style: dashed;
+    background: var(--surface-sunken);
+  }
+}
+
+/** The card under the cursor. Off the page, so it carries its own lift. */
+.cdk-drag-preview {
+  list-style: none;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+/** Cards slide aside to open the gap rather than jumping to their new places. */
+.cdk-drag-animating,
+.cdk-drop-list-dragging .cdk-drag:not(.cdk-drag-placeholder) {
+  transition: transform var(--duration-base) var(--ease-out);
+}

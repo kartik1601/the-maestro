@@ -32,6 +32,7 @@ const work = (id: string, collectionKey: string, title = id): Work =>
     seriesNumber: null,
     tintWord: '',
     videoId: '',
+    sortOrder: 0,
     pinned: false,
     published: true,
     excerpt: '',
@@ -336,6 +337,86 @@ describe('ShelfComponent', () => {
 
       expect(toggles()).toHaveLength(1);
       expect(html().querySelector('.group__title')?.textContent?.trim()).toBe('Rains of Love');
+    });
+  });
+
+  describe('ordering the shelf', () => {
+    const grips = () => [...html().querySelectorAll('.drag-grip')];
+    const titles = () =>
+      [...html().querySelectorAll('.card__title')].map((title) => title.textContent?.trim());
+
+    /** Renders a shelf and puts the author into edit mode on it. */
+    async function editing(section: Section) {
+      await shelf(section);
+
+      const auth = TestBed.inject(AuthService);
+      auth.login({ username: 'u', password: 'p', authKey: 'k' }).subscribe();
+      http
+        .expectOne((request) => request.url.endsWith('/login'))
+        .flush({ accessToken: 'a.b.c', admin: { displayName: 'K' } });
+      auth.editMode.set(true);
+      await fixture.whenStable();
+    }
+
+    /** The drop the CDK would report, without driving a pointer across the grid. */
+    async function drag(group: number, from: number, to: number) {
+      const shelfComponent = fixture.componentInstance as unknown as {
+        groups: () => { key: string; works: Work[] }[];
+        dropWork: (group: unknown, event: unknown) => void;
+      };
+
+      shelfComponent.dropWork(shelfComponent.groups()[group], {
+        previousIndex: from,
+        currentIndex: to,
+      });
+      await fixture.whenStable();
+    }
+
+    it('gives the author a grip on every card', async () => {
+      await editing('poems');
+      expect(grips()).toHaveLength(3);
+    });
+
+    it('gives a reader none', async () => {
+      await shelf('poems');
+      expect(grips()).toHaveLength(0);
+    });
+
+    it('leaves the uploaded shelves alone, where the order already means something', async () => {
+      await editing('novels');
+      expect(grips()).toHaveLength(0);
+    });
+
+    it('shows the new order at once and writes it behind', async () => {
+      await editing('poems');
+      await drag(0, 0, 1);
+
+      expect(titles()).toEqual(['rain-two', 'rain-one', 'other-one']);
+
+      const written = http.expectOne(`${API}/works/reorder`);
+      expect(written.request.body).toEqual({ ids: ['rain-two', 'rain-one'] });
+      written.flush({ ordered: 2 });
+    });
+
+    it('moves only the sub-section that was dragged in', async () => {
+      await editing('poems');
+      await drag(0, 0, 1);
+
+      http.expectOne(`${API}/works/reorder`).flush({ ordered: 2 });
+      expect(titles()[2]).toBe('other-one');
+    });
+
+    it('puts the shelf back and says so when the order will not save', async () => {
+      await editing('poems');
+      await drag(0, 0, 1);
+
+      http
+        .expectOne(`${API}/works/reorder`)
+        .flush({ error: 'no' }, { status: 500, statusText: 'Server Error' });
+      await fixture.whenStable();
+
+      expect(titles()).toEqual(['rain-one', 'rain-two', 'other-one']);
+      expect(html().querySelector('.notice--warn')?.textContent).toContain('not saved');
     });
   });
 

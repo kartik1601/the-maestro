@@ -64,6 +64,11 @@ export class ContentService {
     return this.http.delete<void>(`${this.base}/works/${id}`);
   }
 
+  /** Writes the shelf order the author dragged the cards into. Ids in display order. */
+  reorderWorks(ids: string[]): Observable<{ ordered: number }> {
+    return this.http.put<{ ordered: number }>(`${this.base}/works/reorder`, { ids });
+  }
+
   uploadPdf(id: string, file: File): Observable<Work> {
     const form = new FormData();
     form.append('pdf', file);

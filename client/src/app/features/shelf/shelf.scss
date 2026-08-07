@@ -590,3 +590,15 @@
   border-color: var(--accent-warm);
   color: var(--accent-warm);
 }
+
+/* An aside to the author, not a message about the shelf: it must not shout. */
+.notice--quiet {
+  padding: var(--space-3);
+  margin-block-end: var(--space-5);
+  font-size: var(--text-sm);
+}
+
+/* Anchors the drag grip; dragging itself is styled in styles.scss. */
+.grid > li {
+  position: relative;
+}

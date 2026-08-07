@@ -300,6 +300,62 @@ describe('PATCH /api/works/:id', () => {
     assert.equal(response.status, 404);
   });
 
+  describe('renaming', () => {
+    it('moves the work to a slug made from its new title', async () => {
+      const work = await seedWork({ title: 'Requiem', slug: 'requiem' });
+
+      const response = await asAuthor('PATCH', `/api/works/${work.id}`, {
+        body: { title: 'Bells of Requiem' },
+      });
+
+      assert.equal(response.body.slug, 'bells-of-requiem');
+      assert.equal((await asReader('GET', '/api/works/poems/bells-of-requiem')).status, 200);
+    });
+
+    it('leaves the slug alone when the title is unchanged', async () => {
+      const work = await seedWork({ title: 'Requiem', slug: 'an-old-address' });
+
+      const response = await asAuthor('PATCH', `/api/works/${work.id}`, {
+        body: { title: 'Requiem', subtitle: 'A subtitle' },
+      });
+
+      assert.equal(response.body.slug, 'an-old-address');
+    });
+
+    it('suffixes rather than failing when a sibling already holds that slug', async () => {
+      await seedWork({ title: 'Requiem', slug: 'requiem' });
+      const work = await seedWork({ title: 'Another', slug: 'another' });
+
+      const response = await asAuthor('PATCH', `/api/works/${work.id}`, {
+        body: { title: 'Requiem' },
+      });
+
+      assert.equal(response.status, 200);
+      assert.equal(response.body.slug, 'requiem-2');
+    });
+
+    it('honours a slug it was given explicitly', async () => {
+      const work = await seedWork({ title: 'Requiem', slug: 'requiem' });
+
+      const response = await asAuthor('PATCH', `/api/works/${work.id}`, {
+        body: { title: 'Bells of Requiem', slug: 'Chosen By Hand' },
+      });
+
+      assert.equal(response.body.slug, 'chosen-by-hand');
+    });
+
+    it('ignores a namesake in another section', async () => {
+      await seedWork({ section: 'songs', title: 'Requiem', slug: 'requiem' });
+      const work = await seedWork({ title: 'Another', slug: 'another' });
+
+      const response = await asAuthor('PATCH', `/api/works/${work.id}`, {
+        body: { title: 'Requiem' },
+      });
+
+      assert.equal(response.body.slug, 'requiem');
+    });
+  });
+
   it('is not there at all without a session', async () => {
     const work = await seedWork();
     const response = await asReader('PATCH', `/api/works/${work.id}`, {
@@ -307,6 +363,53 @@ describe('PATCH /api/works/:id', () => {
     });
 
     assert.equal(response.status, 404);
+  });
+});
+
+describe('PUT /api/works/reorder', () => {
+  /** Three poems in one sub-section, listed in the order the shelf would show them. */
+  const shelf = async () => {
+    const one = await seedWork({ title: 'One', slug: 'one', sortOrder: 0 });
+    const two = await seedWork({ title: 'Two', slug: 'two', sortOrder: 1 });
+    const three = await seedWork({ title: 'Three', slug: 'three', sortOrder: 2 });
+    return [one, two, three];
+  };
+
+  const listed = async () =>
+    (await asReader('GET', '/api/works/poems')).body.works.map((work) => work.slug);
+
+  it('lists the works in the order it was given', async () => {
+    const [one, two, three] = await shelf();
+
+    const response = await asAuthor('PUT', '/api/works/reorder', {
+      body: { ids: [three.id, one.id, two.id] },
+    });
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(await listed(), ['three', 'one', 'two']);
+  });
+
+  it('refuses an empty order', async () => {
+    const response = await asAuthor('PUT', '/api/works/reorder', { body: { ids: [] } });
+    assert.equal(response.status, 400);
+  });
+
+  it('refuses anything that is not a work id', async () => {
+    const response = await asAuthor('PUT', '/api/works/reorder', {
+      body: { ids: ['not-an-id'] },
+    });
+    assert.equal(response.status, 400);
+  });
+
+  it('is not there at all without a session', async () => {
+    const [one, two, three] = await shelf();
+
+    const response = await asReader('PUT', '/api/works/reorder', {
+      body: { ids: [three.id, two.id, one.id] },
+    });
+
+    assert.equal(response.status, 404);
+    assert.deepEqual(await listed(), ['one', 'two', 'three']);
   });
 });
 

@@ -40,6 +40,8 @@ export interface Work {
    * shown by their thumbnail on the shelf, and the body is not in a list response.
    */
   videoId: string;
+  /** Manual shelf position within a sub-section, set by dragging the cards. */
+  sortOrder: number;
   pinned: boolean;
   published: boolean;
   excerpt: string;

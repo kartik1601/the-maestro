@@ -2,7 +2,7 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { switchMap } from 'rxjs';
+import { filter, map, switchMap } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
 import { ContentService } from '../../core/content.service';
 import { Section, Work } from '../../core/models';
@@ -70,10 +70,15 @@ export class DocumentComponent {
   constructor() {
     this.route.paramMap
       .pipe(
-        switchMap((params) => {
+        map((params) => params.get('slug') ?? ''),
+        // Renaming a work rewrites the address to match its new title. That is a real
+        // navigation, but the work is already loaded and already current — refetching
+        // it would only throw away the "Saved" line the author just earned.
+        filter((slug) => slug !== this.work()?.slug),
+        switchMap((slug) => {
           this.loading.set(true);
           const section = this.route.snapshot.data['section'] as Section;
-          return this.content.getWork(section, params.get('slug') ?? '');
+          return this.content.getWork(section, slug);
         }),
       )
       .subscribe({
@@ -118,6 +123,13 @@ export class DocumentComponent {
           this.work.set(updated);
           this.saving.set(false);
           this.savedAt.set(new Date());
+
+          // The slug is made from the title, so a rename moves the work. Replaces the
+          // history entry rather than adding one: the old address is gone, and Back
+          // should return to the shelf, not to a page that now 404s.
+          if (updated.slug !== work.slug) {
+            this.router.navigate(['/', updated.section, updated.slug], { replaceUrl: true });
+          }
         },
         error: () => {
           this.saveError.set('Those changes were not saved.');

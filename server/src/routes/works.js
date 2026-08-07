@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import mongoose from 'mongoose';
 import multer from 'multer';
 import { env } from '../config/env.js';
 import { SECTIONS, Work, WORK_LIST_PROJECTION } from '../models/work.js';
@@ -143,9 +144,47 @@ export function worksRouter() {
     }
   });
 
+  /**
+   * Manual shelf order, for Poems and Songs where nothing else decides it — no series
+   * number to follow and no reason for alphabetical. The ids arrive in the order they
+   * should appear and become sortOrder 0..n, which is what the list query sorts on.
+   *
+   * Declared ahead of '/:id' routes for readability only; the paths cannot collide.
+   */
+  router.put('/reorder', requireAdmin, async (req, res, next) => {
+    try {
+      const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+      if (ids.length === 0) return res.status(400).json({ error: 'No order received.' });
+      if (!ids.every((id) => mongoose.isValidObjectId(id))) {
+        return res.status(400).json({ error: 'That is not a work id.' });
+      }
+
+      await Work.bulkWrite(
+        ids.map((id, index) => ({
+          updateOne: { filter: { _id: id }, update: { $set: { sortOrder: index } } },
+        })),
+      );
+
+      res.json({ ordered: ids.length });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.patch('/:id', requireAdmin, async (req, res, next) => {
     try {
       const payload = readWorkPayload(req.body ?? {}, { partial: true });
+
+      const existing = await Work.findById(req.params.id).select('section title slug');
+      if (!existing) return res.status(404).json({ error: 'Work not found' });
+
+      // A renamed work has to answer to a new address. The slug was made from the old
+      // title, so leaving it behind would have every link and every card pointing at a
+      // name the work no longer carries.
+      if (payload.title && payload.title !== existing.title && payload.slug === undefined) {
+        payload.slug = await freeSlug(existing.section, payload.title, existing._id);
+      }
+
       const work = await Work.findByIdAndUpdate(req.params.id, payload, { returnDocument: 'after' });
       if (!work) return res.status(404).json({ error: 'Work not found' });
 
@@ -255,6 +294,35 @@ async function findVisibleWork(req, { includePdf = false } = {}) {
   return work;
 }
 
+/**
+ * The slug a title should have, with a numeric suffix if a sibling already holds it.
+ *
+ * A rename must never fail: two poems are allowed to share a title, and refusing the
+ * save would leave the author looking at an error over an edit that is perfectly
+ * legitimate. Creation still 409s on a clash — there the author can simply pick again.
+ *
+ * The pattern is built from an already-slugified root, so it holds nothing but
+ * [a-z0-9-] and cannot carry regex syntax into the query.
+ */
+async function freeSlug(section, title, excludeId) {
+  const root = slugify(title) || 'untitled';
+
+  const siblings = await Work.find({
+    section,
+    _id: { $ne: excludeId },
+    slug: new RegExp(`^${root}(-\\d+)?$`),
+  })
+    .select('slug')
+    .lean();
+
+  const taken = new Set(siblings.map((row) => row.slug));
+  if (!taken.has(root)) return root;
+
+  for (let n = 2; ; n += 1) {
+    if (!taken.has(`${root}-${n}`)) return `${root}-${n}`;
+  }
+}
+
 function readWorkPayload(body, { partial = false } = {}) {
   const payload = {};
   const assign = (key, value) => {
@@ -330,6 +398,7 @@ const shapeWork = (work) => ({
   seriesNumber: work.seriesNumber,
   tintWord: work.tintWord ?? '',
   videoId: work.videoId ?? '',
+  sortOrder: work.sortOrder ?? 0,
   pinned: work.pinned,
   published: work.published,
   excerpt: work.excerpt,

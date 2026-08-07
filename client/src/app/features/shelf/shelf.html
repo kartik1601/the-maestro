@@ -167,6 +167,12 @@
   } @else if (works().length === 0) {
     <p class="notice">Nothing here yet.</p>
   } @else {
+    @if (orderError()) {
+      <p class="notice notice--warn">{{ orderError() }}</p>
+    } @else if (canReorder()) {
+      <p class="notice notice--quiet">Drag a card by its grip to set the order of a shelf.</p>
+    }
+
     @for (group of groups(); track group.key) {
       <section class="group" [class.group--collapsible]="collapsible()">
         <header class="group__head" [class.group__head--series]="isSeriesLabel(group.key)">
@@ -263,10 +269,29 @@
               <p class="group__empty">Nothing filed here yet.</p>
             }
 
-            <ul class="grid stagger">
+            <ul
+              class="grid stagger"
+              cdkDropList
+              cdkDropListOrientation="mixed"
+              [cdkDropListData]="group.works"
+              [cdkDropListDisabled]="!canReorder()"
+              (cdkDropListDropped)="dropWork(group, $event)"
+            >
               <!-- cardIndex drives which colour this card's tinted syllable takes. -->
               @for (work of group.works; track work.id; let cardIndex = $index) {
-                <li>
+                <li cdkDrag [cdkDragDisabled]="!canReorder()">
+                  <!-- A card is a link first. Dragging is on a grip of its own so a
+                       click still opens the poem while the shelf is being arranged. -->
+                  @if (canReorder()) {
+                    <button
+                      class="drag-grip"
+                      type="button"
+                      cdkDragHandle
+                      [attr.aria-label]="'Reorder ' + work.title"
+                    >
+                      ⠿
+                    </button>
+                  }
                   <a class="card" [routerLink]="['/', work.section, work.slug]">
                     @if (work.seriesNumber) {
                       <span class="card__number">{{ work.seriesNumber }}</span>
