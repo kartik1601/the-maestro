@@ -1,3 +1,11 @@
+<!-- Held back while the author has unsaved work: a refresh would take the draft with
+     it, and being nagged to reload the thing you are still writing is absurd. -->
+<app-refresh-pill
+  [visible]="sync.stale() && !dirty()"
+  [busy]="refreshing()"
+  (refresh)="refresh()"
+/>
+
 @if (loading()) {
   <div class="shell shell--narrow">
     <div class="doc-skeleton"></div>

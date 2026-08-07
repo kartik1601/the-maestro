@@ -1,3 +1,10 @@
+<!-- Held back while the author has an unsaved note, which a reload would take with it. -->
+<app-refresh-pill
+  [visible]="sync.stale() && !noteDirty()"
+  [busy]="refreshing()"
+  (refresh)="refresh()"
+/>
+
 @if (loading()) {
   <div class="shell">
     <div class="reader-skeleton"></div>

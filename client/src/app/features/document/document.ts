@@ -6,7 +6,9 @@ import { filter, map, switchMap } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
 import { ContentService } from '../../core/content.service';
 import { Section, Work } from '../../core/models';
+import { SyncService } from '../../core/sync.service';
 import { ModalService } from '../../shared/modal/modal.service';
+import { RefreshPillComponent } from '../../shared/refresh-pill/refresh-pill';
 import { RichEditorComponent } from '../../shared/rich-editor/rich-editor';
 import { AuthoredHtmlPipe } from '../../shared/safe-html.pipe';
 import { ProseTablesDirective } from '../../shared/prose-tables.directive';
@@ -29,6 +31,7 @@ import { AudioEmbedsDirective } from '../../shared/rich-editor/audio-embeds.dire
     YouTubeEmbedsDirective,
     AudioEmbedsDirective,
     ProseTablesDirective,
+    RefreshPillComponent,
   ],
   templateUrl: './document.html',
   styleUrl: './document.scss',
@@ -39,10 +42,12 @@ export class DocumentComponent {
   private readonly content = inject(ContentService);
   private readonly modal = inject(ModalService);
   protected readonly auth = inject(AuthService);
+  protected readonly sync = inject(SyncService);
 
   protected readonly work = signal<Work | null>(null);
   protected readonly loading = signal(true);
   protected readonly notFound = signal(false);
+  protected readonly refreshing = signal(false);
 
   protected readonly draftBody = signal('');
   protected readonly draftTitle = signal('');
@@ -78,6 +83,7 @@ export class DocumentComponent {
         switchMap((slug) => {
           this.loading.set(true);
           const section = this.route.snapshot.data['section'] as Section;
+          this.sync.watch({ works: section });
           return this.content.getWork(section, slug);
         }),
       )
@@ -105,6 +111,25 @@ export class DocumentComponent {
     });
   }
 
+  /**
+   * Re-reads the work the reader is on. Never automatic: pulling a poem out from
+   * under someone mid-line is worse than their being a minute out of date.
+   */
+  protected refresh(): void {
+    const work = this.work();
+    if (!work || this.refreshing()) return;
+
+    this.refreshing.set(true);
+    this.content.getWork(work.section, work.slug).subscribe({
+      next: (fresh) => {
+        this.work.set(fresh);
+        this.refreshing.set(false);
+        this.sync.acknowledge();
+      },
+      error: () => this.refreshing.set(false),
+    });
+  }
+
   protected save(): void {
     const work = this.work();
     if (!work || this.saving() || !this.dirty()) return;
@@ -123,6 +148,8 @@ export class DocumentComponent {
           this.work.set(updated);
           this.saving.set(false);
           this.savedAt.set(new Date());
+          // The author's own save moved the section on; it is not news to them.
+          this.sync.acknowledge();
 
           // The slug is made from the title, so a rename moves the work. Replaces the
           // history entry rather than adding one: the old address is gone, and Back

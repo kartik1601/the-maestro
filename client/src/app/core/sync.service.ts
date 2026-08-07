@@ -4,7 +4,8 @@ import { environment } from '../../environments/environment';
 
 interface VersionSnapshot {
   posts: string | null;
-  works: string | null;
+  /** Keyed by section, so an edit in Songs is not news to someone reading Poems. */
+  works: Record<string, string | null>;
   pages: Record<string, string | null>;
   checkedAt: string;
 }
@@ -13,7 +14,8 @@ interface VersionSnapshot {
 export interface WatchKey {
   page?: string;
   posts?: boolean;
-  works?: boolean;
+  /** The section whose works are on the page — a shelf's, or a single work's own. */
+  works?: string;
 }
 
 const POLL_MS = 20_000;
@@ -97,7 +99,7 @@ export class SyncService {
     const { page, posts, works } = this.watching;
 
     if (posts && before.posts !== after.posts) return true;
-    if (works && before.works !== after.works) return true;
+    if (works && before.works?.[works] !== after.works?.[works]) return true;
     if (page && before.pages?.[page] !== after.pages?.[page]) return true;
 
     return false;

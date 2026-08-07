@@ -116,7 +116,8 @@ describe('ShelfComponent', () => {
     http.expectOne(`${API}/works/${section}`).flush({ section, works: listed });
     http.expectOne(`${API}/pages/${section}`).flush(page(groups));
     for (const request of http.match(`${API}/version`)) {
-      request.flush({ posts: null, works: null, pages: {}, checkedAt: '' });
+      // Every section is present in a real answer, null included — see version.js.
+      request.flush({ posts: null, works: { [section]: null }, pages: {}, checkedAt: '' });
     }
   }
 
@@ -337,6 +338,34 @@ describe('ShelfComponent', () => {
 
       expect(toggles()).toHaveLength(1);
       expect(html().querySelector('.group__title')?.textContent?.trim()).toBe('Rains of Love');
+    });
+  });
+
+  describe('the refresh pill', () => {
+    const pill = () => html().querySelector('.pill');
+
+    /** A second poll, without waiting out the interval: returning to the tab forces one. */
+    const pollAgain = async (poems: string | null) => {
+      document.dispatchEvent(new Event('visibilitychange'));
+      http
+        .expectOne(`${API}/version`)
+        .flush({ posts: null, works: { poems }, pages: {}, checkedAt: '' });
+      await fixture.whenStable();
+    };
+
+    it('offers a reader the refresh, with no session of any kind', async () => {
+      await shelf('poems');
+      expect(TestBed.inject(AuthService).isAdmin()).toBe(false);
+      expect(pill()).toBeNull();
+
+      await pollAgain('moved on');
+      expect(pill()).not.toBeNull();
+    });
+
+    it('stays away while nothing has changed', async () => {
+      await shelf('poems');
+      await pollAgain(null);
+      expect(pill()).toBeNull();
     });
   });
 

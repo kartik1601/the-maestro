@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { after, before, beforeEach, describe, it } from 'node:test';
 import { Page } from '../../src/models/page.js';
 import { Post } from '../../src/models/post.js';
-import { Work } from '../../src/models/work.js';
+import { SECTIONS, Work } from '../../src/models/work.js';
+import { signIn } from '../helpers/fixtures.js';
 import {
   clearDatabase,
   request,
@@ -13,12 +14,26 @@ import {
 } from '../helpers/harness.js';
 
 let baseUrl;
+let token;
 
 const version = () => request(baseUrl, 'GET', '/api/version');
+const versionAsAuthor = () => request(baseUrl, 'GET', '/api/version', { token });
+
+/** A published work, which is what a reader's poll is allowed to be told about. */
+const seedWork = (overrides = {}) =>
+  Work.create({
+    section: 'poems',
+    kind: 'document',
+    title: 'A',
+    slug: 'a',
+    published: true,
+    ...overrides,
+  });
 
 before(async () => {
   await startDatabase();
   baseUrl = await startServer();
+  ({ token } = await signIn(baseUrl));
 });
 
 after(async () => {
@@ -34,7 +49,8 @@ describe('GET /api/version', () => {
 
     assert.equal(response.status, 200);
     assert.equal(response.body.posts, null);
-    assert.equal(response.body.works, null);
+    assert.deepEqual(Object.keys(response.body.works).sort(), [...SECTIONS].sort());
+    assert.ok(Object.values(response.body.works).every((value) => value === null));
     assert.deepEqual(response.body.pages, {});
   });
 
@@ -44,11 +60,11 @@ describe('GET /api/version', () => {
 
   it('reports the newest timestamp in each collection', async () => {
     await Post.create({ body: '<p>A post</p>', published: true });
-    await Work.create({ section: 'poems', kind: 'document', title: 'A', slug: 'a' });
+    await seedWork();
 
     const { body } = await version();
     assert.ok(body.posts);
-    assert.ok(body.works);
+    assert.ok(body.works.poems);
   });
 
   it('keys pages by slug, so an edit to Novels does not prompt a Poems reader', async () => {
@@ -60,13 +76,8 @@ describe('GET /api/version', () => {
   });
 
   it('moves on when a work is saved', async () => {
-    const work = await Work.create({
-      section: 'poems',
-      kind: 'document',
-      title: 'A',
-      slug: 'a',
-    });
-    const before = (await version()).body.works;
+    const work = await seedWork();
+    const before = (await version()).body.works.poems;
 
     // Mongo timestamps have millisecond resolution; without this the two saves can
     // land inside the same millisecond and the test would assert nothing.
@@ -74,7 +85,7 @@ describe('GET /api/version', () => {
     work.title = 'A, revised';
     await work.save();
 
-    assert.notEqual((await version()).body.works, before);
+    assert.notEqual((await version()).body.works.poems, before);
   });
 
   it('leaves the other collections alone when one changes', async () => {
@@ -82,11 +93,42 @@ describe('GET /api/version', () => {
     const first = await version();
 
     await new Promise((resolve) => setTimeout(resolve, 5));
-    await Work.create({ section: 'poems', kind: 'document', title: 'A', slug: 'a' });
+    await seedWork();
 
     const second = await version();
     assert.equal(second.body.posts, first.body.posts);
-    assert.notEqual(second.body.works, first.body.works);
+    assert.notEqual(second.body.works.poems, first.body.works.poems);
+  });
+
+  it('keys works by section, so a song saved is not news on the Poems shelf', async () => {
+    await seedWork({ section: 'songs', slug: 'a-song' });
+
+    const { body } = await version();
+    assert.ok(body.works.songs);
+    assert.equal(body.works.poems, null);
+  });
+
+  describe('what a reader is allowed to be told about', () => {
+    it('says nothing about a draft — a refresh would bring back the same page', async () => {
+      await seedWork({ published: false });
+
+      assert.equal((await version()).body.works.poems, null);
+      assert.ok((await versionAsAuthor()).body.works.poems, 'the author still sees their own');
+    });
+
+    it('says nothing about an unpublished post', async () => {
+      await Post.create({ body: '<p>Not yet</p>', published: false });
+
+      assert.equal((await version()).body.posts, null);
+      assert.ok((await versionAsAuthor()).body.posts);
+    });
+
+    it('says nothing about an unpublished page', async () => {
+      await Page.create({ slug: 'poems', title: 'Poems', published: false });
+
+      assert.deepEqual((await version()).body.pages, {});
+      assert.ok((await versionAsAuthor()).body.pages.poems);
+    });
   });
 
   it('stamps when it answered', async () => {

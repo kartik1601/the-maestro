@@ -157,7 +157,7 @@ export class ShelfComponent {
           const section = data['section'] as Section;
           this.loading.set(true);
           this.expandedGroups.set(new Set());
-          this.sync.watch({ page: section, works: true });
+          this.sync.watch({ page: section, works: section });
 
           return forkJoin({
             works: this.content.listWorks(section),
