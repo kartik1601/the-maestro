@@ -1,0 +1,113 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 210;
+  display: grid;
+  place-items: center;
+  padding: var(--space-5);
+  background: rgb(16 18 21 / 45%);
+  backdrop-filter: blur(2px);
+  animation: fade var(--duration-fast) var(--ease-out) both;
+}
+
+.panel {
+  width: min(100%, 24rem);
+  padding: var(--space-5);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xl);
+  animation: crop-in var(--duration-base) var(--ease-out) both;
+}
+
+@keyframes crop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.panel__title {
+  font-size: var(--text-xl);
+}
+
+.panel__hint {
+  margin-block-start: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/**
+ * Square, and the only window onto the image — nothing outside it survives Apply.
+ * `touch-action: none` hands every gesture to the pointer handlers; without it the
+ * page scrolls out from under a drag on a phone.
+ */
+.cropper {
+  position: relative;
+  aspect-ratio: 1;
+  width: 100%;
+  margin-block-start: var(--space-4);
+  overflow: hidden;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  touch-action: none;
+  user-select: none;
+}
+
+.cropper--ready {
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.cropper__img {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  max-width: none;
+  transform-origin: 0 0;
+  /* The portrait is shown grayscale on the page; crop in colour, so the author can
+     see what they are framing. */
+  -webkit-user-drag: none;
+}
+
+.cropper__waiting {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.cropper__zoom {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-block-start: var(--space-4);
+}
+
+.cropper__slider {
+  width: 100%;
+  accent-color: var(--accent-calm);
+}
+
+.cropper__error {
+  margin-block-start: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--accent-warm);
+}
+
+.panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block-start: var(--space-5);
+}

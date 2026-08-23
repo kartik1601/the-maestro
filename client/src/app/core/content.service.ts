@@ -112,6 +112,18 @@ export class ContentService {
   }
 
   /**
+   * Fetches an already-stored image as bytes.
+   *
+   * Needed for re-cropping: an `<img>` pointed at another origin taints the canvas,
+   * and the export would throw. In development the API is on another port, so the
+   * portrait is pulled through here and handed to the cropper as a blob URL — which
+   * counts as same-origin wherever the site is running.
+   */
+  loadMedia(url: string): Observable<Blob> {
+    return this.http.get(resolveMediaUrl(url), { responseType: 'blob' });
+  }
+
+  /**
    * Stored media URLs are relative (`/api/media/:id`) so a document is portable
    * between environments; the browser still needs an absolute one during local
    * development, where the API and the site are on different ports. See

@@ -1,0 +1,73 @@
+<div class="backdrop" (click)="onBackdrop($event)">
+  <div class="panel" role="dialog" aria-modal="true" [attr.aria-label]="title()">
+    <h2 class="panel__title">{{ title() }}</h2>
+    <p class="panel__hint">Drag to reposition. Pinch or scroll to zoom.</p>
+
+    <!--
+      The frame is the crop. Whatever it shows is exactly what is exported, so there
+      is no separate preview to keep honest.
+    -->
+    <div
+      class="cropper"
+      #frame
+      [class.cropper--ready]="loaded()"
+      (pointerdown)="onPointerDown($event)"
+      (pointermove)="onPointerMove($event)"
+      (pointerup)="onPointerUp($event)"
+      (pointercancel)="onPointerUp($event)"
+      (wheel)="onWheel($event)"
+    >
+      <img
+        class="cropper__img"
+        #image
+        [src]="src()"
+        alt=""
+        draggable="false"
+        [style.width.px]="displayWidth()"
+        [style.height.px]="displayHeight()"
+        [style.transform]="transform()"
+        (load)="onImageLoad()"
+        (error)="onImageError()"
+      />
+
+      @if (!loaded() && !failed()) {
+        <div class="cropper__waiting">Loading…</div>
+      }
+    </div>
+
+    <label class="cropper__zoom">
+      <span class="field__label">Zoom</span>
+      <input
+        class="cropper__slider"
+        type="range"
+        min="1"
+        max="4"
+        step="0.01"
+        [disabled]="!loaded()"
+        [value]="zoom()"
+        (input)="onZoomInput($any($event.target).value)"
+      />
+    </label>
+
+    @if (failed()) {
+      <p class="cropper__error">That image could not be opened for cropping.</p>
+    }
+
+    <div class="panel__actions">
+      <button class="btn btn--primary" type="button" [disabled]="!canApply()" (click)="apply()">
+        {{ exporting() || busy() ? 'Saving…' : 'Apply' }}
+      </button>
+      <button class="btn btn--ghost" type="button" (click)="reset()" [disabled]="!loaded()">
+        Reset
+      </button>
+      <button
+        class="btn btn--quiet"
+        type="button"
+        [disabled]="exporting() || busy()"
+        (click)="cancelled.emit()"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>

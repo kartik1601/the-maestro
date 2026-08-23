@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -6,6 +6,7 @@ import { AuthService } from '../../core/auth.service';
 import { ContentService } from '../../core/content.service';
 import { Page, Profile } from '../../core/models';
 import { SyncService } from '../../core/sync.service';
+import { ImageCropperComponent } from '../../shared/image-cropper/image-cropper';
 import { RichEditorComponent } from '../../shared/rich-editor/rich-editor';
 import { AuthoredHtmlPipe } from '../../shared/safe-html.pipe';
 import { ProseTablesDirective } from '../../shared/prose-tables.directive';
@@ -24,6 +25,7 @@ const AUTHOR_PORTRAIT_KEY = 'author-portrait';
     DatePipe,
     FormsModule,
     RichEditorComponent,
+    ImageCropperComponent,
     AuthoredHtmlPipe,
     RefreshPillComponent,
     ProseTablesDirective,
@@ -53,6 +55,11 @@ export class AboutComponent {
   protected readonly saving = signal(false);
   protected readonly savedAt = signal<Date | null>(null);
   protected readonly uploadingPhoto = signal(false);
+
+  /** Object URL the cropper is working on — non-null while the dialog is open. */
+  protected readonly cropperSrc = signal<string | null>(null);
+  /** Set while the stored portrait is being fetched back for a re-crop. */
+  protected readonly preparingCrop = signal(false);
 
   protected readonly editing = computed(() => this.auth.isAdmin() && this.auth.editMode());
 
@@ -149,6 +156,9 @@ export class AboutComponent {
       const page = this.page();
       if (page) this.resetDrafts(page);
     });
+
+    // Leaving the page mid-crop would otherwise hold the whole photograph in memory.
+    inject(DestroyRef).onDestroy(() => this.closeCropper());
   }
 
   protected load(): void {
@@ -215,11 +225,45 @@ export class AboutComponent {
     if (page) this.resetDrafts(page);
   }
 
-  /** Uploads a new portrait and points the profile at it. */
+  /**
+   * A chosen file goes to the cropper first — nothing is uploaded until the author
+   * has framed it. The portrait is shown as a square, and a photograph that is not
+   * square gets its edges taken off one way or another; this way the author decides
+   * which edges.
+   */
   protected onPhotoChosen(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
+    input.value = '';
     if (!file) return;
+
+    this.openCropper(URL.createObjectURL(file));
+  }
+
+  /** Re-frames the portrait already on the page, without asking for the file again. */
+  protected adjustPhoto(): void {
+    const url = this.draftPhotoUrl();
+    if (!url || this.preparingCrop()) return;
+
+    this.preparingCrop.set(true);
+
+    // Fetched as bytes rather than pointed at directly: a cross-origin <img> would
+    // taint the canvas and the crop could never be read back out.
+    this.content.loadMedia(url).subscribe({
+      next: (blob) => {
+        this.preparingCrop.set(false);
+        this.openCropper(URL.createObjectURL(blob));
+      },
+      error: () => {
+        this.preparingCrop.set(false);
+        this.error.set('That photo could not be opened for cropping.');
+      },
+    });
+  }
+
+  /** Uploads the framed square and points the profile at it. */
+  protected onCropped(blob: Blob): void {
+    const file = new File([blob], 'portrait.jpg', { type: blob.type || 'image/jpeg' });
 
     this.uploadingPhoto.set(true);
 
@@ -229,14 +273,25 @@ export class AboutComponent {
       next: ({ url }) => {
         this.draftPhotoUrl.set(url);
         this.uploadingPhoto.set(false);
-        input.value = '';
+        this.closeCropper();
       },
       error: () => {
         this.error.set('That photo could not be uploaded.');
         this.uploadingPhoto.set(false);
-        input.value = '';
+        this.closeCropper();
       },
     });
+  }
+
+  protected closeCropper(): void {
+    const url = this.cropperSrc();
+    if (url) URL.revokeObjectURL(url);
+    this.cropperSrc.set(null);
+  }
+
+  private openCropper(objectUrl: string): void {
+    this.closeCropper();
+    this.cropperSrc.set(objectUrl);
   }
 
   protected removePhoto(): void {

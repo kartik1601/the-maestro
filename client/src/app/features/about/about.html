@@ -59,6 +59,14 @@
                 {{ uploadingPhoto() ? 'Uploading…' : photoSrc() ? 'Replace' : 'Upload photo' }}
               </label>
               @if (photoSrc()) {
+                <button
+                  class="btn btn--quiet"
+                  type="button"
+                  [disabled]="preparingCrop()"
+                  (click)="adjustPhoto()"
+                >
+                  {{ preparingCrop() ? 'Opening…' : 'Adjust' }}
+                </button>
                 <button class="btn btn--quiet" type="button" (click)="removePhoto()">Remove</button>
               }
             </div>
@@ -148,6 +156,16 @@
       ></div>
     }
   </article>
+
+  @if (cropperSrc(); as source) {
+    <app-image-cropper
+      [src]="source"
+      title="Frame the portrait"
+      [busy]="uploadingPhoto()"
+      (cropped)="onCropped($event)"
+      (cancelled)="closeCropper()"
+    />
+  }
 } @else {
   <div class="shell empty">
     <p class="notice notice--warn">{{ error() }}</p>
