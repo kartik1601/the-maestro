@@ -89,6 +89,11 @@
           {{ section.label }}
         </a>
       }
+
+      <!-- The author's dashboard. Not rendered at all for a reader. -->
+      @if (auth.isAdmin()) {
+        <a class="nav__link" routerLink="/pulse" routerLinkActive="nav__link--active">Pulse</a>
+      }
     </nav>
 
     <div class="masthead__actions">

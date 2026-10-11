@@ -13,6 +13,7 @@ import { authInterceptor } from './core/auth.interceptor';
 import { AuthService } from './core/auth.service';
 import { ThemeService } from './core/theme.service';
 import { SessionGuardService } from './core/session-guard.service';
+import { VisitService } from './core/visit.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -39,6 +40,9 @@ export const appConfig: ApplicationConfig = {
       inject(ThemeService);
       // Instantiated here so it starts watching as soon as a session exists.
       inject(SessionGuardService);
+      // Listening before the first navigation, or the page a reader lands on is the
+      // one page that never gets counted.
+      inject(VisitService);
       await firstValueFrom(inject(AuthService).restoreSession());
     }),
   ],

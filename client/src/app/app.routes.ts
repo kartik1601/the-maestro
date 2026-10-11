@@ -1,5 +1,7 @@
+import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
 import { environment } from '../environments/environment';
+import { AuthService } from './core/auth.service';
 
 /**
  * Sections split into two shapes:
@@ -88,6 +90,18 @@ export const routes: Routes = [
     path: environment.adminPortalPath,
     loadComponent: () => import('./features/portal/portal').then((m) => m.PortalComponent),
     title: 'the maestro',
+  },
+
+  /**
+   * The author's dashboard. `canMatch` rather than `canActivate`: without a session
+   * the route does not match at all, so the URL falls through to the same not-found
+   * page as any other and never shows that something is here.
+   */
+  {
+    path: 'pulse',
+    canMatch: [() => inject(AuthService).isAdmin()],
+    loadComponent: () => import('./features/pulse/pulse').then((m) => m.PulseComponent),
+    title: 'Pulse · the maestro',
   },
 
   {

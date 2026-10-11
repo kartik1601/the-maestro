@@ -6,6 +6,7 @@ import { AuthService } from '../../core/auth.service';
 import { ContentService } from '../../core/content.service';
 import { Section, Work } from '../../core/models';
 import { SyncService } from '../../core/sync.service';
+import { VisitService } from '../../core/visit.service';
 import { ModalService } from '../../shared/modal/modal.service';
 import { RefreshPillComponent } from '../../shared/refresh-pill/refresh-pill';
 import { RichEditorComponent } from '../../shared/rich-editor/rich-editor';
@@ -45,6 +46,7 @@ export class ReaderComponent {
   private readonly modal = inject(ModalService);
   protected readonly auth = inject(AuthService);
   protected readonly sync = inject(SyncService);
+  private readonly visits = inject(VisitService);
 
   protected readonly work = signal<Work | null>(null);
   protected readonly loading = signal(true);
@@ -134,6 +136,9 @@ export class ReaderComponent {
       this.draftNote.set(work.body ?? '');
       this.noteSavedAt.set(null);
     });
+
+    // How far in the reader is — the one thing a path cannot say about a book.
+    effect(() => this.visits.progress(this.page(), this.totalPages()));
   }
 
   /**

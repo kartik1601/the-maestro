@@ -1,0 +1,305 @@
+<section class="pulse shell">
+  <header class="pulse__head rise">
+    <div>
+      <p class="eyebrow">Private · the author only</p>
+      <h1 class="pulse__title">Pulse</h1>
+      <p class="pulse__lede">Who is reading, what they are reading, and how they found you.</p>
+    </div>
+
+    <div class="pulse__controls">
+      <p class="pulse__status" role="status">
+        <span class="pulse__dot" [class.pulse__dot--off]="failed()" aria-hidden="true"></span>
+        {{ failed() ? 'Not reaching the server' : 'Live · refreshes every 10 seconds' }}
+      </p>
+
+      <div class="segmented" role="group" aria-label="Time range">
+        @for (option of ranges; track option.key) {
+          <button
+            class="segmented__option"
+            type="button"
+            [class.segmented__option--on]="range() === option.key"
+            [attr.aria-pressed]="range() === option.key"
+            (click)="choose(option.key)"
+          >
+            {{ option.label }}
+          </button>
+        }
+      </div>
+    </div>
+  </header>
+
+  @if (data(); as pulse) {
+    <section class="totals" aria-label="Totals">
+      <div class="total total--calm">
+        <p class="total__label">Reading right now</p>
+        <p class="total__value">{{ pulse.live.length }}</p>
+        <p class="total__note">
+          @if (pulse.live.length) {
+            on {{ livePlaces() }} {{ livePlaces() === 1 ? 'page' : 'different pages' }}
+          } @else {
+            nobody at the moment
+          }
+        </p>
+      </div>
+
+      <div class="total">
+        <p class="total__label">Views · {{ rangePhrase() }}</p>
+        <p class="total__value">{{ pulse.totals.views.toLocaleString() }}</p>
+        <p class="total__note">
+          from {{ pulse.totals.readers.toLocaleString() }}
+          {{ pulse.totals.readers === 1 ? 'reader' : 'readers' }} · {{ pulse.totals.today }} today
+        </p>
+      </div>
+
+      <div class="total">
+        <p class="total__label">Views · all time</p>
+        <p class="total__value">{{ pulse.totals.allTime.toLocaleString() }}</p>
+        <p class="total__note">since counting began</p>
+      </div>
+
+      <div class="total total--warm">
+        <p class="total__label">Arrived from Instagram</p>
+        <p class="total__value">{{ pulse.totals.instagram.toLocaleString() }}</p>
+        <p class="total__note">
+          @if (instagramShare() !== null) {
+            {{ instagramShare() }}% of arrivals, {{ rangePhrase() }}
+          } @else {
+            no arrivals {{ rangePhrase() }}
+          }
+        </p>
+      </div>
+    </section>
+
+    <div class="pulse__row">
+      <section class="panel panel--wide">
+        <div class="panel__head">
+          <h2 class="panel__title">Reading right now</h2>
+          <p class="panel__note">One row per open tab. Readers are anonymous.</p>
+        </div>
+
+        @if (pulse.live.length) {
+          <div class="panel__scroll">
+            <table class="table table--live">
+              <thead>
+                <tr>
+                  <th scope="col">Reader</th>
+                  <th scope="col">On page</th>
+                  <th scope="col">Came from</th>
+                  <th scope="col" class="table__num">Here for</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (reader of pulse.live; track reader.id) {
+                  <tr>
+                    <td class="table__id">{{ reader.reader }}</td>
+                    <td>
+                      <a class="table__work" [routerLink]="reader.path">{{ reader.title }}</a>
+                      <span class="table__where">
+                        {{ reader.place }}
+                        @if (reader.page && reader.pages) {
+                          · page {{ reader.page }} of {{ reader.pages }}
+                        }
+                      </span>
+                    </td>
+                    <td class="table__quiet">{{ reader.from }}</td>
+                    <td class="table__num">{{ duration(reader.seconds) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <p class="panel__empty">Nobody is on the site at the moment.</p>
+        }
+      </section>
+
+      <section class="panel">
+        <div class="panel__head">
+          <h2 class="panel__title">Where they are</h2>
+        </div>
+        <ul class="places">
+          @for (place of pulse.places; track place.key) {
+            <li class="places__item">
+              <span class="places__line">
+                <span>{{ place.label }}</span>
+                <span class="places__count">{{ place.count }}</span>
+              </span>
+              <span class="places__track" aria-hidden="true">
+                <span class="places__bar" [style.width]="percent(place.count, placeMax())"></span>
+              </span>
+            </li>
+          }
+        </ul>
+      </section>
+    </div>
+
+    <section class="panel">
+      <div class="panel__head">
+        <h2 class="panel__title">Views, day by day</h2>
+        <p class="panel__note">
+          Last 14 days
+          @if (busiest(); as peak) {
+            · busiest day {{ dayName(peak.day) }}, {{ peak.views }}
+            {{ peak.views === 1 ? 'view' : 'views' }}
+          }
+        </p>
+      </div>
+      <div class="panel__scroll">
+        <ol class="chart" aria-label="Views per day over the last 14 days">
+          @for (day of pulse.days; track day.day) {
+            <li class="chart__day" [attr.aria-label]="dayName(day.day) + ': ' + day.views + ' views'">
+              <span class="chart__value" aria-hidden="true">{{ day.views }}</span>
+              <span class="chart__column" aria-hidden="true">
+                <span class="chart__bar" [style.height]="percent(day.views, dayMax())"></span>
+              </span>
+              <span class="chart__label" aria-hidden="true">{{ dayNumber(day.day) }}</span>
+            </li>
+          }
+        </ol>
+      </div>
+    </section>
+
+    <div class="pulse__row">
+      <section class="panel panel--wide">
+        <div class="panel__head">
+          <h2 class="panel__title">Most read</h2>
+          <p class="panel__note">Every work and page, {{ rangePhrase() }}</p>
+        </div>
+
+        @if (pulse.top.length) {
+          <div class="panel__scroll">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">Work</th>
+                  <th scope="col" class="table__num">Views</th>
+                  <th scope="col" class="table__num">Readers</th>
+                  <th scope="col" class="table__num">Avg. stay</th>
+                  <th scope="col" class="table__num">All time</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (work of pulse.top; track work.path) {
+                  <tr>
+                    <td>
+                      <a class="table__work" [routerLink]="work.path">{{ work.title }}</a>
+                      <span class="table__where">{{ work.place }}</span>
+                    </td>
+                    <td class="table__num table__strong">{{ work.views }}</td>
+                    <td class="table__num table__quiet">{{ work.readers }}</td>
+                    <td class="table__num table__quiet">{{ duration(work.staySeconds) }}</td>
+                    <td class="table__num table__quiet">{{ work.allTime }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <p class="panel__empty">No views {{ rangePhrase() }} yet.</p>
+        }
+      </section>
+
+      <section class="panel">
+        <div class="panel__head">
+          <h2 class="panel__title">From Instagram</h2>
+        </div>
+
+        <div class="links">
+          @if (pulse.links.length) {
+            <ul class="links__list">
+              @for (link of pulse.links; track link.tag) {
+                <li class="links__item">
+                  <div class="links__text">
+                    <span class="links__label">{{ link.label }}</span>
+                    @if (link.id) {
+                      <span class="links__url">{{ shownUrl(link) }}</span>
+                    } @else {
+                      <span class="links__url">Tapped from Instagram without a tag</span>
+                    }
+                    <span class="links__last">{{ ago(link.lastOpenedAt) }}</span>
+
+                    @if (link.id) {
+                      <span class="links__actions">
+                        <button class="links__action" type="button" (click)="copy(link)">
+                          {{ copiedTag() === link.tag ? 'Copied' : 'Copy link' }}
+                        </button>
+                        <button class="links__action" type="button" (click)="removeLink(link)">
+                          Remove
+                        </button>
+                      </span>
+                    }
+                  </div>
+                  <div class="links__opens">
+                    <span class="links__count">{{ link.opens }}</span>
+                    <span class="links__unit">{{ link.opens === 1 ? 'open' : 'opens' }}</span>
+                  </div>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="panel__empty panel__empty--inline">No links yet. Make the first one below.</p>
+          }
+
+          <form class="links__form" (submit)="createLink($event)">
+            <div class="field">
+              <label class="field__label" for="link-label">Make a tagged link</label>
+              <input
+                class="input"
+                id="link-label"
+                name="label"
+                type="text"
+                maxlength="80"
+                placeholder="Name it — e.g. Story, 12 Oct"
+                autocomplete="off"
+                [ngModel]="linkLabel()"
+                (ngModelChange)="linkLabel.set($event)"
+              />
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="link-path">Lands on</label>
+              <select
+                class="input"
+                id="link-path"
+                name="path"
+                [ngModel]="linkPath()"
+                (ngModelChange)="linkPath.set($event)"
+              >
+                @for (destination of destinations(); track destination.path) {
+                  <option [value]="destination.path">{{ destination.label }}</option>
+                }
+              </select>
+            </div>
+
+            @if (linkError()) {
+              <p class="links__error" role="alert">{{ linkError() }}</p>
+            }
+
+            <button
+              class="btn btn--primary"
+              type="submit"
+              [disabled]="creating() || !linkLabel().trim()"
+            >
+              {{ creating() ? 'Making…' : 'Create and copy' }}
+            </button>
+            <p class="field__hint">
+              The tag is dropped from the address bar once counted, so a forwarded link is not
+              mistaken for yours.
+            </p>
+          </form>
+        </div>
+      </section>
+    </div>
+
+    <footer class="pulse__foot">
+      <span>
+        No names, no IP addresses, no cookies. A reader is a random id their own browser made up.
+      </span>
+      <span>Your own visits are never counted.</span>
+    </footer>
+  } @else if (failed()) {
+    <p class="panel__empty">The numbers could not be loaded. This page will keep trying.</p>
+  } @else {
+    <p class="panel__empty">Counting…</p>
+  }
+</section>
