@@ -12,7 +12,6 @@ import { mediaRouter } from './routes/media.js';
 import { versionRouter } from './routes/version.js';
 import { visitsRouter } from './routes/visits.js';
 import { pulseRouter } from './routes/pulse.js';
-import { letterRouter } from './routes/letter.js';
 import { errorHandler, notFound } from './middleware/error.js';
 
 export function createApp() {
@@ -68,9 +67,6 @@ export function createApp() {
   // Readers report that they are here; only the author can read what that adds up to.
   app.use('/api/visits', visitsRouter());
   app.use(`/api/${env.adminPortalPath}/pulse`, pulseRouter());
-
-  // The letter on the Blogs page, and the gate in front of it.
-  app.use('/api/letter', letterRouter());
 
   app.use(notFound);
   app.use(errorHandler);

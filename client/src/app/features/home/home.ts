@@ -12,9 +12,6 @@ import { AuthoredHtmlPipe } from '../../shared/safe-html.pipe';
 import { ProseTablesDirective } from '../../shared/prose-tables.directive';
 import { RefreshPillComponent } from '../../shared/refresh-pill/refresh-pill';
 import { ModalService } from '../../shared/modal/modal.service';
-import { LetterService, LetterStatus } from '../../core/letter.service';
-import { LetterGateComponent } from '../letter/letter-gate';
-import { LetterRevealComponent } from '../letter/letter-reveal';
 
 const SLUG = 'blogs';
 
@@ -28,8 +25,6 @@ const SLUG = 'blogs';
     AuthoredHtmlPipe,
     RefreshPillComponent,
     ProseTablesDirective,
-    LetterGateComponent,
-    LetterRevealComponent,
   ],
   templateUrl: './home.html',
   styleUrl: './home.scss',
@@ -39,11 +34,6 @@ export class HomeComponent {
   private readonly modal = inject(ModalService);
   protected readonly auth = inject(AuthService);
   protected readonly sync = inject(SyncService);
-  private readonly letter = inject(LetterService);
-
-  /** Where this reader stands with the letter, or null when the modal stays shut. */
-  protected readonly letterOffer = signal<LetterStatus | null>(null);
-  protected readonly letterOpen = signal(false);
 
   protected readonly posts = signal<Post[]>([]);
   protected readonly page = signal<Page | null>(null);
@@ -92,7 +82,6 @@ export class HomeComponent {
   constructor() {
     this.load();
     this.sync.watch({ page: SLUG, posts: true });
-    this.letter.shouldOffer().subscribe((status) => this.letterOffer.set(status));
   }
 
   protected load(): void {
@@ -124,20 +113,6 @@ export class HomeComponent {
       },
       error: () => this.refreshing.set(false),
     });
-  }
-
-  // ── The letter ─────────────────────────────────────────────────────────────
-
-  protected onLetterUnlocked(): void {
-    this.letterOffer.set(null);
-    this.letterOpen.set(true);
-  }
-
-  protected onLetterClosed(): void {
-    this.letterOpen.set(false);
-    // However it ended, it does not come back on this visit.
-    this.letter.dismissed.set(true);
-    this.letter.token.set(null);
   }
 
   // ── Reactions ──────────────────────────────────────────────────────────────
