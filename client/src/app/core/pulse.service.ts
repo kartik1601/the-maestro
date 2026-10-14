@@ -65,6 +65,42 @@ export interface Pulse {
   links: PulseLink[];
 }
 
+export type LetterEventKind =
+  | 'unlocked'
+  | 'wrong'
+  | 'blocked'
+  | 'otp-requested'
+  | 'otp-accepted'
+  | 'otp-wrong'
+  | 'unblocked';
+
+export interface LetterEvent {
+  id: string;
+  kind: LetterEventKind;
+  ip: string;
+  email: string;
+  strikes: number;
+  at: string;
+}
+
+/** An address the gate is holding back right now. */
+export interface LetterHeld {
+  id: string;
+  ip: string;
+  email: string;
+  strikes: number;
+  state: 'open' | 'email' | 'otp' | 'cooldown' | 'blocked';
+  retryAt: string | null;
+}
+
+export interface LetterOverview {
+  enabled: boolean;
+  /** How many times the message has been opened, ever. */
+  opened: number;
+  events: LetterEvent[];
+  held: LetterHeld[];
+}
+
 /** The author's read on who is here. Every call 404s for anyone else. */
 @Injectable({ providedIn: 'root' })
 export class PulseService {
@@ -83,5 +119,14 @@ export class PulseService {
 
   removeLink(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/links/${id}`);
+  }
+
+  letter(): Observable<LetterOverview> {
+    return this.http.get<LetterOverview>(`${this.base}/letter`);
+  }
+
+  /** Lifts a wait or a block, and wipes that address's strikes. */
+  releaseLetter(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/letter/held/${id}`);
   }
 }

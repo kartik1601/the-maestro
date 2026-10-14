@@ -4,6 +4,7 @@ import { TrackedLink, Visit } from '../models/visit.js';
 import { requireAdmin } from '../middleware/auth.js';
 import { slugify } from '../lib/slugify.js';
 import { SECTION_LABELS } from './visits.js';
+import { overview as letterOverview, release as releaseLetterGuard } from '../services/letter-service.js';
 
 /** A reader is "here" until this long after their last beat — two missed beats and a bit. */
 const LIVE_WINDOW_MS = 45 * 1000;
@@ -48,6 +49,28 @@ export function pulseRouter() {
         top,
         links,
       });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // ── The letter on the Blogs page ──────────────────────────────────────────
+
+  router.get('/letter', async (_req, res, next) => {
+    try {
+      res.set('Cache-Control', 'no-store');
+      res.json(await letterOverview());
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  /** Lifts a wait or a block and wipes that address's strikes. */
+  router.delete('/letter/held/:id', async (req, res, next) => {
+    try {
+      if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ error: 'Not found' });
+      const released = await releaseLetterGuard(req.params.id);
+      res.status(released ? 204 : 404).end();
     } catch (error) {
       next(error);
     }

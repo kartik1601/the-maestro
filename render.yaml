@@ -66,3 +66,24 @@ services:
         sync: false
       - key: R2_PUBLIC_BASE_URL
         sync: false
+
+      # The letter on the Blogs page. LETTER_PEPPER must be the value `npm run
+      # letter:set` was run with. Without it the letter is simply off.
+      - key: LETTER_PEPPER
+        sync: false
+      - key: LETTER_NOTIFY_TO
+        sync: false
+      # 'true' only while api.themaestro.co.in is proxied through Cloudflare.
+      - key: TRUST_CF_CONNECTING_IP
+        value: 'false'
+
+      # Gmail API (alternate account) for the letter's bypass codes. Optional —
+      # unset, the code is written to the service log instead.
+      - key: GMAIL_CLIENT_ID
+        sync: false
+      - key: GMAIL_CLIENT_SECRET
+        sync: false
+      - key: GMAIL_REFRESH_TOKEN
+        sync: false
+      - key: GMAIL_SENDER
+        sync: false

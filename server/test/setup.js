@@ -34,3 +34,12 @@ process.env.R2_ACCOUNT_ID = '';
 process.env.R2_ACCESS_KEY_ID = '';
 process.env.R2_SECRET_ACCESS_KEY = '';
 process.env.R2_BUCKET = '';
+
+// The letter is on in tests, with answers set per suite. Mail goes to a recorder.
+process.env.LETTER_PEPPER = 'test-letter-pepper';
+process.env.LETTER_NOTIFY_TO = 'author@example.test';
+process.env.TRUST_CF_CONNECTING_IP = 'false';
+process.env.GMAIL_CLIENT_ID = '';
+process.env.GMAIL_CLIENT_SECRET = '';
+process.env.GMAIL_REFRESH_TOKEN = '';
+process.env.GMAIL_SENDER = '';

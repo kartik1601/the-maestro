@@ -1,0 +1,130 @@
+/* Below the shared modal host (z-index 200), so "Never show again" can confirm on top. */
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  overflow-y: auto;
+  background: rgb(16 18 21 / 50%);
+  backdrop-filter: blur(3px);
+  animation: gate-fade var(--duration-base) var(--ease-out) both;
+}
+
+.gate__panel {
+  position: relative;
+  width: min(100%, 30rem);
+  padding: var(--space-6) var(--space-5) var(--space-5);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-medium);
+  border-top: 3px solid var(--accent-warm);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xl);
+  animation: gate-in var(--duration-slow) var(--ease-out) both;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+.gate__close {
+  position: absolute;
+  inset-block-start: var(--space-3);
+  inset-inline-end: var(--space-3);
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  transition: color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    color: var(--text-primary);
+    background: var(--surface-inset);
+  }
+}
+
+.gate__title {
+  font-family: var(--font-serif);
+  font-size: var(--text-3xl);
+  color: var(--accent-warm);
+}
+
+.gate__lede {
+  margin-block-start: var(--space-3);
+  font-family: var(--font-serif);
+  font-size: var(--text-base);
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.gate__fields {
+  display: grid;
+  gap: var(--space-4);
+  margin-block-start: var(--space-5);
+}
+
+.gate__code {
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  letter-spacing: 0.4em;
+  text-align: center;
+}
+
+.gate__error {
+  font-size: var(--text-sm);
+  color: var(--accent-warm);
+}
+
+/* Gold, like the rule above and the "Hi!" — the one warm thing on the panel. */
+.gate__submit {
+  justify-self: stretch;
+  padding-block: var(--space-3);
+  background: var(--accent-warm);
+  color: var(--carbon-900);
+  font-weight: 600;
+
+  &:hover:not(:disabled) {
+    background: var(--tan-400);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+  }
+}
+
+.gate__note {
+  margin-block-start: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.gate__footer {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-block-start: var(--space-5);
+  padding-block-start: var(--space-4);
+  border-top: 1px solid var(--border-soft);
+}
+
+@keyframes gate-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes gate-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gate,
+  .gate__panel {
+    animation: none;
+  }
+}

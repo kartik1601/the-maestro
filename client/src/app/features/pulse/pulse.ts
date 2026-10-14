@@ -4,10 +4,36 @@ import { RouterLink } from '@angular/router';
 import { catchError, forkJoin, of } from 'rxjs';
 import { ContentService } from '../../core/content.service';
 import { SECTION_META, Section } from '../../core/models';
-import { Pulse, PulseLink, PulseRange, PulseService } from '../../core/pulse.service';
+import {
+  LetterEventKind,
+  LetterHeld,
+  LetterOverview,
+  Pulse,
+  PulseLink,
+  PulseRange,
+  PulseService,
+} from '../../core/pulse.service';
 import { ModalService } from '../../shared/modal/modal.service';
 
 const REFRESH_MS = 10_000;
+
+const LETTER_EVENT_LABELS: Record<LetterEventKind, string> = {
+  unlocked: 'Opened the message',
+  wrong: 'Wrong details',
+  blocked: 'Blocked for a day',
+  'otp-requested': 'Asked for a code',
+  'otp-accepted': 'Used the code',
+  'otp-wrong': 'Wrong code',
+  unblocked: 'Released by you',
+};
+
+const LETTER_HELD_LABELS: Record<LetterHeld['state'], string> = {
+  open: 'Free to try',
+  email: 'Waiting',
+  otp: 'Code sent',
+  cooldown: 'Waiting',
+  blocked: 'Blocked',
+};
 
 const RANGES: { key: PulseRange; label: string; phrase: string }[] = [
   { key: 'today', label: 'Today', phrase: 'today' },
@@ -71,6 +97,48 @@ export class PulseComponent {
       ? Math.round((totals.instagram / totals.arrivals) * 100)
       : null;
   });
+
+  // ── The letter ─────────────────────────────────────────────────────────────
+
+  protected readonly letter = signal<LetterOverview | null>(null);
+  protected readonly releasing = signal<string | null>(null);
+  protected readonly letterEventLabels = LETTER_EVENT_LABELS;
+  protected readonly letterHeldLabels = LETTER_HELD_LABELS;
+
+  protected async release(held: LetterHeld): Promise<void> {
+    const confirmed = await this.modal.confirm({
+      title: `Release ${held.ip || 'this address'}?`,
+      message:
+        'Its wait or block ends now and its strikes are wiped, so it gets three fresh tries.',
+      confirmLabel: 'Release',
+    });
+    if (!confirmed) return;
+
+    this.releasing.set(held.id);
+    this.pulse.releaseLetter(held.id).subscribe({
+      next: () => {
+        this.releasing.set(null);
+        this.refreshLetter();
+      },
+      error: () => this.releasing.set(null),
+    });
+  }
+
+  protected when(iso: string): string {
+    return new Date(iso).toLocaleString(undefined, {
+      day: 'numeric',
+      month: 'short',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  }
+
+  private refreshLetter(): void {
+    this.pulse.letter().subscribe({
+      next: (letter) => this.letter.set(letter),
+      error: () => undefined,
+    });
+  }
 
   // ── Making a link ──────────────────────────────────────────────────────────
 
@@ -200,6 +268,7 @@ export class PulseComponent {
 
   private refresh(): void {
     if (document.hidden) return;
+    this.refreshLetter();
 
     const asked = this.range();
     this.pulse.load(asked).subscribe({

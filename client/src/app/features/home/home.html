@@ -213,3 +213,15 @@
     </ol>
   }
 </section>
+
+@if (letterOffer(); as offer) {
+  <app-letter-gate
+    [initial]="offer"
+    (closed)="letterOffer.set(null)"
+    (unlocked)="onLetterUnlocked()"
+  />
+}
+
+@if (letterOpen()) {
+  <app-letter-reveal (closed)="onLetterClosed()" />
+}

@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import { connectDatabase, disconnectDatabase } from '../db/connect.js';
 import { provisionAdmin } from '../services/auth-service.js';
 import { Admin } from '../models/admin.js';
+import { askSecret as askSecretVia } from '../lib/ask-secret.js';
 
 /**
  * Provisions (or replaces) the single admin. This is the only supported way to set
@@ -15,30 +16,7 @@ import { Admin } from '../models/admin.js';
 
 const rl = readline.createInterface({ input: stdin, output: stdout });
 
-/** Suppresses terminal echo so secrets do not linger on screen or in scrollback. */
-async function askSecret(prompt) {
-  const wasRaw = stdin.isRaw;
-  stdout.write(prompt);
-
-  const onData = (char) => {
-    // Re-render the prompt without the typed characters.
-    if (!/[\r\n]/.test(char.toString())) {
-      stdout.clearLine(0);
-      stdout.cursorTo(0);
-      stdout.write(prompt);
-    }
-  };
-
-  stdin.on('data', onData);
-  try {
-    const answer = await rl.question('');
-    return answer.trim();
-  } finally {
-    stdin.off('data', onData);
-    if (wasRaw !== undefined) stdin.isRaw = wasRaw;
-    stdout.write('\n');
-  }
-}
+const askSecret = (prompt) => askSecretVia(rl, prompt);
 
 try {
   const { mode } = await connectDatabase();

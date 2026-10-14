@@ -12,7 +12,9 @@
     "start": "node src/index.js",
     "test": "node --test --import ./test/setup.js \"test/**/*.test.js\"",
     "seed": "node src/seed/seed.js",
-    "admin:create": "node src/scripts/create-admin.js"
+    "admin:create": "node src/scripts/create-admin.js",
+    "letter:set": "node src/scripts/set-letter.js",
+    "letter:video": "node src/scripts/set-letter-video.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1101.0",

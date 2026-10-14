@@ -137,6 +137,42 @@ export const env = {
   },
 
   /**
+   * The letter on the Blogs page — a message that opens only for one reader.
+   *
+   * `pepper` is mixed into every hash the feature stores, so the database alone is
+   * not enough to test guesses against: her answers are low-entropy (a name, two
+   * handles, a birthday) and a plain scrypt of them could be brute-forced offline.
+   * Unset means the letter is off — the modal never shows — rather than the server
+   * refusing to boot over a feature that is optional.
+   *
+   * Changing the pepper invalidates the stored answers; re-run `npm run letter:set`.
+   */
+  letter: {
+    pepper: process.env.LETTER_PEPPER ?? '',
+    /** Where the bypass code is mailed. */
+    notifyTo: process.env.LETTER_NOTIFY_TO ?? '',
+    /**
+     * Only when the API sits behind Cloudflare's proxy (orange cloud). There the
+     * first trusted hop is a Cloudflare edge, shared by strangers, and the real
+     * address is in CF-Connecting-IP. Off by default because anywhere else that
+     * header is whatever the client chose to send.
+     */
+    trustCfConnectingIp: bool(process.env.TRUST_CF_CONNECTING_IP, false),
+  },
+
+  /**
+   * Gmail API over HTTPS, sending as the author's alternate account. HTTPS rather
+   * than SMTP because Render's free plan blocks outbound SMTP ports. Leave any of
+   * these empty and mail is printed to the server log instead of sent.
+   */
+  gmail: {
+    clientId: process.env.GMAIL_CLIENT_ID ?? '',
+    clientSecret: process.env.GMAIL_CLIENT_SECRET ?? '',
+    refreshToken: process.env.GMAIL_REFRESH_TOKEN ?? '',
+    sender: process.env.GMAIL_SENDER ?? '',
+  },
+
+  /**
    * Automatic only for the throwaway in-process database, which starts empty on every
    * boot and would otherwise leave a fresh clone with nothing to look at.
    *

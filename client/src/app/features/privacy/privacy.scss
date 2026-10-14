@@ -1,0 +1,28 @@
+.privacy {
+  max-width: var(--measure-wide);
+}
+
+.privacy__head {
+  display: grid;
+  gap: var(--space-3);
+  margin-block-end: var(--space-6);
+}
+
+.privacy__title {
+  font-size: clamp(var(--text-2xl), 5vw, var(--text-4xl));
+  animation-delay: 60ms;
+}
+
+.privacy__updated {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  animation-delay: 120ms;
+}
+
+.privacy__body {
+  animation-delay: 180ms;
+}
+
+.privacy__back {
+  margin-block-start: var(--space-7);
+}

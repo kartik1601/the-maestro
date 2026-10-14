@@ -1,0 +1,87 @@
+<article class="privacy shell">
+  <header class="privacy__head">
+    <p class="eyebrow rise">Privacy</p>
+    <h1 class="privacy__title rise">What this site keeps, and what it does not.</h1>
+    <p class="privacy__updated rise">Last updated {{ updated }}</p>
+  </header>
+
+  <div class="prose privacy__body rise">
+    <p>
+      the maestro is a personal archive of one writer's work, free to read. There are no
+      accounts for readers, no advertising, no analytics services and no tracking across other
+      sites. Nothing here is sold or shared with anyone.
+    </p>
+
+    <h2>What is stored about readers</h2>
+    <ul>
+      <li>
+        <strong>An anonymous reader id.</strong> A random value your browser makes the first time
+        you visit, kept in its local storage. It lets your emote reactions be counted once and
+        undone, and lets the author see how many people are reading. It is not linked to your
+        name, email, IP address or device.
+      </li>
+      <li>
+        <strong>Page visits.</strong> Which page of this site was opened, when, for roughly how
+        long, the page reached in a book, and a broad category for how you arrived (Instagram,
+        Google, direct, or other). The referring address itself is not kept.
+      </li>
+      <li>
+        <strong>Preferences on your device only.</strong> Your light or dark theme, and whether you
+        chose "Never show again" on the message on the home page. These stay in your browser and
+        are never sent to the server.
+      </li>
+    </ul>
+
+    <h2>The message on the home page</h2>
+    <p>
+      The home page shows a message meant for one person, opened by answering four questions.
+      What you type into those questions is checked and not kept: the server stores only a
+      one-way hash of the correct answers.
+    </p>
+    <p>
+      If you try it, the network (IP) address you tried from is recorded, with the time and
+      whether the attempt worked, and the author can see that list. After a wrong attempt you may
+      choose to give an email address so the author can send you a code; if you do, that address
+      is emailed to the author and shown beside your attempt. These records are deleted after six
+      months. Reading the rest of the site records none of this.
+    </p>
+
+    <h2>Email, and the author's Google account</h2>
+    <p>
+      When someone asks for a code to that message, the site emails the author the code and the
+      address they gave. It sends
+      through the Gmail API from the author's own Google account, with permission only to
+      <em>send</em> email (<code>gmail.send</code>). The site does not read, store or share any
+      email, contact or other Google account data, and does not use it for anything but sending
+      those notes to the author. Its use of information received from Google APIs adheres to the
+      <a
+        href="https://developers.google.com/terms/api-services-user-data-policy"
+        target="_blank"
+        rel="noopener noreferrer"
+        >Google API Services User Data Policy</a
+      >, including the Limited Use requirements.
+    </p>
+
+    <h2>Services the site runs on</h2>
+    <p>
+      The site is hosted on Vercel and Render, its database is MongoDB Atlas, and images, books
+      and recordings are served from Cloudflare R2. Like any web host, these see the network
+      requests that reach them. Video thumbnails are loaded from YouTube, and a video player is
+      loaded from YouTube only when you press play. The message screen loads one typeface from
+      Google Fonts.
+    </p>
+
+    <h2>Cookies</h2>
+    <p>
+      Readers get none. The only cookie is a sign-in cookie for the author.
+    </p>
+
+    <h2>Questions, or removing something</h2>
+    <p>
+      Write to <a [href]="'mailto:' + contact">{{ contact }}</a>. Your anonymous reader id can be
+      erased by clearing this site's data in your browser.
+    </p>
+  </div>
+
+  <a class="btn btn--ghost privacy__back" routerLink="/">Back to the beginning</a>
+</article>

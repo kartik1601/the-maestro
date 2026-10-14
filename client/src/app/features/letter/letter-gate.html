@@ -1,0 +1,184 @@
+<div class="gate">
+  <div
+    class="gate__panel"
+    #panel
+    tabindex="-1"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="letter-title"
+  >
+    <button class="gate__close" type="button" (click)="close()" aria-label="Close">✕</button>
+
+    @switch (view()) {
+      @case ('form') {
+        <h2 class="gate__title" id="letter-title">Hi!</h2>
+        <p class="gate__lede">
+          If you are reading this, most probably not, I have left a message for you. Universe has
+          been strange to me in every way, so I don't know when you will find it, but enter your
+          details below and it will appear only for you. These details only me and you know of, and
+          maybe some of your friends but it acts as guard because this message is only meant for
+          you.
+        </p>
+
+        <form class="gate__fields" (ngSubmit)="submit()" autocomplete="off">
+          <label class="field">
+            <span class="field__label">Enter Your Full Name</span>
+            <input
+              class="input"
+              name="name"
+              type="text"
+              autocapitalize="words"
+              spellcheck="false"
+              [ngModel]="name()"
+              (ngModelChange)="name.set($event)"
+            />
+          </label>
+
+          <label class="field">
+            <span class="field__label">Enter Your Private Insta Username</span>
+            <input
+              class="input"
+              name="privateHandle"
+              type="text"
+              autocapitalize="none"
+              spellcheck="false"
+              [ngModel]="privateHandle()"
+              (ngModelChange)="privateHandle.set($event)"
+            />
+          </label>
+
+          <label class="field">
+            <span class="field__label">Enter Your Public Insta Username</span>
+            <input
+              class="input"
+              name="publicHandle"
+              type="text"
+              autocapitalize="none"
+              spellcheck="false"
+              [ngModel]="publicHandle()"
+              (ngModelChange)="publicHandle.set($event)"
+            />
+          </label>
+
+          <label class="field">
+            <span class="field__label">Enter Your Date of Birth</span>
+            <input
+              class="input"
+              name="dob"
+              type="date"
+              min="1900-01-01"
+              [max]="today"
+              [ngModel]="dob()"
+              (ngModelChange)="dob.set($event)"
+            />
+          </label>
+
+          @if (error()) {
+            <p class="gate__error" role="alert">{{ error() }}</p>
+          }
+
+          <button class="btn gate__submit" type="submit" [disabled]="!complete() || busy()">
+            {{ busy() ? 'Checking…' : 'Open the message' }}
+          </button>
+        </form>
+      }
+
+      @case ('email') {
+        <h2 class="gate__title" id="letter-title">Not quite.</h2>
+        <p class="gate__lede">
+          You have reached maximum amount of tries per 15 minutes. Leave your Gmail below and the
+          author will be sent a one-time code along with it, so they know who is asking and can
+          decide whether to share it with you.
+        </p>
+
+        <form class="gate__fields" (ngSubmit)="askForCode()" autocomplete="off">
+          <label class="field">
+            <span class="field__label">Your Gmail</span>
+            <input
+              class="input"
+              name="email"
+              type="email"
+              inputmode="email"
+              autocapitalize="none"
+              spellcheck="false"
+              placeholder="you@gmail.com"
+              [ngModel]="email()"
+              (ngModelChange)="email.set($event)"
+            />
+          </label>
+
+          @if (error()) {
+            <p class="gate__error" role="alert">{{ error() }}</p>
+          }
+
+          <button
+            class="btn gate__submit"
+            type="submit"
+            [disabled]="!email().trim() || busy()"
+          >
+            {{ busy() ? 'Sending…' : 'Send the author a code' }}
+          </button>
+        </form>
+
+        <p class="gate__note">Or wait — the form opens again in {{ waitFor() }}.</p>
+      }
+
+      @case ('otp') {
+        <h2 class="gate__title" id="letter-title">Not quite.</h2>
+        <p class="gate__lede">
+          You have reached maximum amount of tries per 15 minutes. An OTP has been sent to the
+          author's email, kindly contact them and enter here to bypass the timeout. Upon
+          {{ blockWarning() }}, your IP will be blocked to access this screen.
+        </p>
+
+        <form class="gate__fields" (ngSubmit)="redeem()" autocomplete="off">
+          <label class="field">
+            <span class="field__label">One-time code</span>
+            <input
+              class="input gate__code"
+              name="code"
+              type="text"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              maxlength="6"
+              placeholder="••••••"
+              [ngModel]="code()"
+              (ngModelChange)="setCode($event)"
+            />
+          </label>
+
+          @if (error()) {
+            <p class="gate__error" role="alert">{{ error() }}</p>
+          }
+
+          <button
+            class="btn gate__submit"
+            type="submit"
+            [disabled]="code().length !== 6 || busy()"
+          >
+            {{ busy() ? 'Checking…' : 'Use code' }}
+          </button>
+        </form>
+
+        <p class="gate__note">Or wait — the form opens again in {{ waitFor() }}.</p>
+      }
+
+      @case ('wait') {
+        <h2 class="gate__title" id="letter-title">Not yet.</h2>
+        <p class="gate__lede">Try again after {{ waitFor() }}.</p>
+      }
+
+      @case ('blocked') {
+        <h2 class="gate__title" id="letter-title">Closed for now.</h2>
+        <p class="gate__lede">
+          Too many un-successful tries. This screen is closed to your network for {{ waitFor() }}.
+        </p>
+      }
+    }
+
+    <div class="gate__footer">
+      <button class="btn btn--quiet" type="button" (click)="neverAgain()">Never show again</button>
+      <button class="btn btn--ghost" type="button" (click)="close()">Close</button>
+    </div>
+  </div>
+</div>

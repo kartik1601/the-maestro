@@ -1,0 +1,302 @@
+/*
+ * The same beige and black in either theme: this page is a sheet of paper, not part
+ * of the site's chrome.
+ */
+.reveal {
+  --reveal-ink: var(--carbon-900);
+  --reveal-font: 'Playfair Display', var(--font-serif);
+
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6) var(--space-4);
+  min-height: 100dvh;
+  overflow: hidden;
+  background: var(--beige-100);
+  color: var(--reveal-ink);
+  animation: reveal-paper 900ms var(--ease-out) both;
+
+  > * {
+    grid-area: 1 / 1;
+  }
+}
+
+.reveal__close {
+  position: fixed;
+  inset-block-start: max(var(--space-4), env(safe-area-inset-top));
+  inset-inline-end: var(--space-4);
+  z-index: 1;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: rgb(16 18 21 / 55%);
+  border-radius: var(--radius-md);
+  opacity: 0;
+  animation: reveal-fade 600ms var(--ease-out) 2400ms forwards;
+  transition: color var(--duration-fast) var(--ease-out);
+
+  &:hover,
+  &:focus-visible {
+    color: var(--reveal-ink);
+  }
+}
+
+// ── Greeting ──────────────────────────────────────────────────────────────────
+
+.reveal__greeting {
+  display: grid;
+  justify-items: center;
+  /* Room for a reel mid-turn, whose letters ride above the line. */
+  gap: var(--space-5);
+  text-align: center;
+  font-family: var(--reveal-font);
+  font-weight: 400;
+  color: var(--reveal-ink);
+}
+
+.reveal__hi {
+  font-style: italic;
+  font-size: clamp(1.75rem, 6vw, 3rem);
+  letter-spacing: 0.02em;
+  opacity: 0;
+  animation: reveal-rise 1100ms var(--ease-out) 500ms forwards;
+}
+
+/*
+ * The lock. Each reel is a window one letter tall onto a strip of the whole alphabet;
+ * --pos says which letter sits in the window. The window is only a little taller than
+ * one letter and fades at its edges: at rest nothing else shows, and while a reel
+ * turns the letters slide in and out through the fade, as on a suitcase lock.
+ */
+.reveal__name {
+  display: block;
+  /*
+   * 12.5vw because the longest greeting is about 6.9em wide in Playfair: that keeps it
+   * inside a 390px phone with the page's gutters, and 8rem caps it on a desktop.
+   */
+  font-size: clamp(2.5rem, 12.5vw, 8rem);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.lock {
+  /*
+   * Tall enough that no glyph reaches its neighbour's cell: a "g" sits directly above
+   * the "h" on the strip, and at a tighter spacing its tail showed over the h.
+   */
+  --cell: 1.6em;
+  --window: 1.6em;
+
+  display: inline-flex;
+  align-items: center;
+  max-width: calc(100vw - 2rem);
+}
+
+.reel {
+  position: relative;
+  display: inline-block;
+  height: var(--window);
+  overflow: hidden;
+  mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent);
+  transition: width 1100ms var(--ease-out);
+  transition-delay: calc(var(--col) * 110ms);
+}
+
+.reel__strip {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: calc((var(--window) - var(--cell)) / 2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateY(calc(var(--pos) * var(--cell) * -1));
+  /* A little past and back, as a dial does when it clicks home. */
+  transition: transform 2000ms cubic-bezier(0.22, 0.8, 0.25, 1.04);
+  transition-delay: calc(var(--col) * 110ms);
+}
+
+.reel__cell {
+  display: block;
+  height: var(--cell);
+  line-height: var(--cell);
+  white-space: pre;
+}
+
+/* The full stop never turns. */
+.reel--fixed {
+  display: grid;
+  place-items: center;
+  width: auto;
+  mask-image: none;
+  animation: reveal-rise 900ms var(--ease-out) both;
+}
+
+/* The greeting does not cut away: it softens out of focus and fades. */
+.reveal--out {
+  animation: reveal-greeting-out 1400ms var(--ease-out) forwards;
+}
+
+// ── The film ──────────────────────────────────────────────────────────────────
+
+/* While the film plays the paper goes dark, like a room before a screening. */
+.reveal {
+  transition: background-color 1400ms var(--ease-out);
+}
+
+.reveal--film {
+  padding: 0;
+  background: #000;
+
+  .reveal__close {
+    color: rgb(255 255 255 / 45%);
+
+    &:hover,
+    &:focus-visible {
+      color: #fff;
+    }
+  }
+}
+
+.reveal__film {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.reveal__video {
+  display: block;
+  width: 100%;
+  max-height: 100dvh;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  background: #000;
+  opacity: 0;
+  /* Comes in once the greeting has blurred away. */
+  animation: reveal-fade 1200ms var(--ease-out) 1300ms forwards;
+}
+
+.reveal__replay--over {
+  position: absolute;
+  inset-block-end: max(var(--space-6), env(safe-area-inset-bottom));
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  margin: 0;
+  background: rgb(246 240 226 / 85%);
+  animation: reveal-rise 900ms var(--ease-out) both;
+}
+
+// ── Where the video goes, while there is none ─────────────────────────────────
+
+.reveal__stage {
+  width: min(100%, 52rem);
+  text-align: center;
+}
+
+.reveal__stage--in {
+  animation: reveal-rise 900ms var(--ease-out) 300ms both;
+}
+
+.reveal__frame {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 9;
+  padding: var(--space-5);
+  border: 1px solid rgb(16 18 21 / 18%);
+  border-radius: var(--radius-md);
+  background: var(--beige-200);
+}
+
+.reveal__replay {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-start: var(--space-5);
+  padding: var(--space-2) var(--space-4);
+  font-family: var(--reveal-font);
+  font-style: italic;
+  font-size: var(--text-lg);
+  color: var(--reveal-ink);
+  border: 1px solid rgb(16 18 21 / 25%);
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+
+  &:hover,
+  &:focus-visible {
+    background: var(--beige-200);
+    border-color: rgb(16 18 21 / 45%);
+  }
+}
+
+.reveal__pending {
+  font-family: var(--reveal-font);
+  font-style: italic;
+  font-size: clamp(1.25rem, 4vw, 1.75rem);
+  text-align: center;
+}
+
+// ── Motion ────────────────────────────────────────────────────────────────────
+
+@keyframes reveal-paper {
+  from {
+    opacity: 0;
+    clip-path: circle(0% at 50% 50%);
+  }
+  to {
+    opacity: 1;
+    clip-path: circle(150% at 50% 50%);
+  }
+}
+
+@keyframes reveal-fade {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes reveal-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.4em);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@keyframes reveal-greeting-out {
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+    filter: blur(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal__hi,
+  .reel--fixed,
+  .reveal__close,
+  .reveal__stage--in,
+  .reveal__video {
+    animation: reveal-fade 300ms linear forwards;
+    animation-delay: 0ms;
+    clip-path: none;
+  }
+
+  .reveal--out {
+    animation: none;
+    opacity: 0;
+  }
+
+  .reel,
+  .reel__strip {
+    transition: none;
+  }
+}

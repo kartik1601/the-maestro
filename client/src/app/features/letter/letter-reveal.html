@@ -1,0 +1,71 @@
+<div
+  class="reveal"
+  [class.reveal--film]="phase() === 'video' && videoSrc()"
+  role="dialog"
+  aria-modal="true"
+  aria-label="A message"
+>
+  <button class="reveal__close" type="button" (click)="closed.emit()">Back to the site</button>
+
+  @if (phase() !== 'video') {
+    <h1 class="reveal__greeting" animate.leave="reveal--out">
+      <span class="reveal__hi">Hi!</span>
+
+      @if (phase() === 'names') {
+        <span class="reveal__name">
+          <span class="visually-hidden" aria-live="polite">{{ spoken() }}.</span>
+
+          <span class="lock" aria-hidden="true">
+            @for (reel of reels(); track reel.column) {
+              <span
+                class="reel"
+                [style.width.em]="reel.width"
+                [style.--pos]="reel.position"
+                [style.--col]="reel.column"
+              >
+                <span class="reel__strip">
+                  @for (char of strip(); track $index) {
+                    <span class="reel__cell">{{ char }}</span>
+                  }
+                </span>
+              </span>
+            }
+            <span class="reel reel--fixed"><span class="reel__cell">.</span></span>
+          </span>
+        </span>
+      }
+    </h1>
+  } @else if (videoSrc(); as src) {
+    <!-- The names blur away into black, and the film comes up out of it. -->
+    <section class="reveal__film">
+      <video
+        class="reveal__video"
+        [src]="src"
+        autoplay
+        muted
+        playsinline
+        preload="auto"
+        disablepictureinpicture
+        controlslist="nodownload noplaybackrate"
+        (contextmenu)="$event.preventDefault()"
+        (ended)="ended.set(true)"
+      ></video>
+
+      @if (ended()) {
+        <button class="reveal__replay reveal__replay--over" type="button" (click)="replay()">
+          <span aria-hidden="true">↺</span> Replay
+        </button>
+      }
+    </section>
+  } @else {
+    <section class="reveal__stage" animate.enter="reveal__stage--in">
+      <div class="reveal__frame">
+        <p class="reveal__pending">Something is still being made for you.</p>
+      </div>
+
+      <button class="reveal__replay" type="button" (click)="replay()">
+        <span aria-hidden="true">↺</span> Replay
+      </button>
+    </section>
+  }
+</div>

@@ -81,6 +81,12 @@ export const routes: Routes = [
     title: 'About the Author · the maestro',
   },
 
+  {
+    path: 'privacy',
+    loadComponent: () => import('./features/privacy/privacy').then((m) => m.PrivacyComponent),
+    title: 'Privacy · the maestro',
+  },
+
   /**
    * The admin entrance. Its path comes from configuration and is never linked to
    * from anywhere in the UI — a visitor who does not know the segment gets the
