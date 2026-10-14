@@ -111,7 +111,9 @@ export class VisitService {
     this.stop();
 
     const privatePage = path === '/pulse' || path.startsWith(`/${environment.adminPortalPath}`);
-    if (this.auth.isAdmin() || privatePage) return;
+    // Only the deployed site counts. A local build talks to the same database, and the
+    // author browsing it signed out would otherwise show up as a reader.
+    if (!environment.production || this.auth.isAdmin() || privatePage) return;
 
     const landing = !this.landed;
     this.landed = true;
